@@ -12,4 +12,5 @@ interface SdpExchangeObserverInterface {
 
     fun onCandidate(candidate: IceCandidate);
 
+    fun onConnect();
 }

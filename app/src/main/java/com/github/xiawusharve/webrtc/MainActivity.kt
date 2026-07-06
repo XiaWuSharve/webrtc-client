@@ -12,7 +12,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Button
@@ -25,8 +24,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.github.xiawusharve.webrtc.ui.theme.WebrtcTheme
 import com.permissionx.guolindev.PermissionX
 import org.webrtc.*
 import org.webrtc.audio.AudioDeviceModule
@@ -47,15 +44,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 持有 WebRTC 核心对象，方便在 onDestroy 中清理
-    private var peerConnectionFactory: PeerConnectionFactory? = null
-    private var audioTrack: AudioTrack? = null
-    private var audioSource: AudioSource? = null
-    private var peerConnection: PeerConnection? = null
-    private var audioDeviceModule: AudioDeviceModule? = null
+    private lateinit var peerConnectionFactory: PeerConnectionFactory
+    private lateinit var audioTrack: AudioTrack
+    private lateinit var audioSource: AudioSource
+    private lateinit var peerConnection: PeerConnection
+    private lateinit var audioDeviceModule: AudioDeviceModule
 
-    private var myWebSocketClient: MyWebSocketClient? = null
-    private var rtcClient: RtcClient? = null
-
+    private lateinit var signalingClient: SignalingClient
+    private lateinit var rtcClient: RtcClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,15 +63,18 @@ class MainActivity : AppCompatActivity() {
                         .fillMaxSize()
                         .padding(padding)  // ✅ 整个 Column 都避开系统栏
                 ) {
-                    var remoteSessionId by remember { mutableStateOf("") }
-                    OutlinedTextField(
-                        value = remoteSessionId,
-                        onValueChange = { remoteSessionId = it },
-                        label = { Text("remote session id") },
-                        modifier = Modifier.fillMaxWidth()  // 可选：宽度充满，但不覆盖全局 padding
+                    var localId by remember { mutableStateOf("") }
+                    LocalIdTextField(localId, {value -> localId = value})
+
+                    var remoteId by remember { mutableStateOf("") }
+                    RemoteIdTextField(remoteId, { value -> remoteId = value })
+
+                    RegisterButton(
+                        onClick = { register(localId) },
+                        modifier = Modifier.wrapContentSize()
                     )
                     TestCallAutoAnswer(
-                        onClick = { testCall(remoteSessionId) },
+                        onClick = { testCall(remoteId) },
                         modifier = Modifier.wrapContentSize()  // 或指定大小，如 Modifier.size(100.dp)
                     )
                     Spacer(modifier = Modifier.weight(1f))  // 可选：把按钮推到顶部，或者不加也行
@@ -86,12 +85,20 @@ class MainActivity : AppCompatActivity() {
         requestPermissionsAndInit()
     }
 
-    private fun testCall(remoteSessionId: String) {
-        myWebSocketClient?.setRemoteSessionId(remoteSessionId)
-        rtcClient?.call()
+    private fun testCall(remoteId: String) {
+        Log.d(TAG, "testing communication...")
+        signalingClient.setRemoteId(remoteId)
+        rtcClient.call()
+    }
+
+    private fun register(localId: String) {
+        Log.i(TAG, "注册用户中")
+        signalingClient.setLocalId(localId)
+        signalingClient.register() // TODO: 添加连接成功回调
     }
 
     private fun requestPermissionsAndInit() {
+        Log.i(TAG, "正在获取权限")
         PermissionX.init(this)
             .permissions(
                 Manifest.permission.RECORD_AUDIO,
@@ -101,9 +108,11 @@ class MainActivity : AppCompatActivity() {
             )
             .request { allGranted, _, deniedList ->
                 if (allGranted) {
+                    Log.i(TAG, "所有权限已授予")
                     Toast.makeText(this, "所有权限已授予", Toast.LENGTH_SHORT).show()
                     initWebRTC()
                 } else {
+                    Log.e(TAG, "acquire permission failed: $deniedList")
                     Toast.makeText(
                         this,
                         "以下权限被拒绝: $deniedList",
@@ -114,6 +123,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun initWebRTC() {
+        Log.i(TAG, "初始化WebRTC")
         try {
             // 1. 初始化 PeerConnectionFactory（生产环境关闭 Tracer）
             val initOptions = PeerConnectionFactory.InitializationOptions.builder(this)
@@ -145,13 +155,11 @@ class MainActivity : AppCompatActivity() {
             }
 
             // 6. 创建 PeerConnection（必须传入 Observer）
-            val myWebSocketClient = MyWebSocketClient(URI(WS_URL))
-            // test
-            myWebSocketClient.setRemoteSessionId("fe9cc6c1-f688-299b-9fd5-f6524ae1")
-            myWebSocketClient.connect()
-            val rtcClient = RtcClient(myWebSocketClient)
+            val signalingClient = SignalingClient(URI(WS_URL))
+            signalingClient.connect()
+            val rtcClient = RtcClient(signalingClient)
 
-            myWebSocketClient.setSdpExchangeObserver(rtcClient)
+            signalingClient.setSdpExchangeObserver(rtcClient)
             val peerConnection = factory.createPeerConnection(rtcConfig, rtcClient)
                 ?: throw IllegalStateException("无法创建 PeerConnection")
             rtcClient.setPeerConnection(peerConnection)
@@ -164,8 +172,8 @@ class MainActivity : AppCompatActivity() {
             audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
             audioManager.isSpeakerphoneOn = true
 
-            Log.d(TAG, "PeerConnection 创建成功")
-            this.myWebSocketClient = myWebSocketClient
+            Log.i(TAG, "WebRTC 初始化成功")
+            this.signalingClient = signalingClient
             this.rtcClient = rtcClient
             this.peerConnection = peerConnection
         } catch (e: Exception) {
@@ -174,7 +182,6 @@ class MainActivity : AppCompatActivity() {
             // 清理已分配的资源
             releaseResources()
         }
-
     }
 
     override fun onDestroy() {
@@ -184,21 +191,17 @@ class MainActivity : AppCompatActivity() {
 
     private fun releaseResources() {
         // 关闭 PeerConnection
-        peerConnection?.close()
-        peerConnection = null
+        peerConnection.close()
 
         // 释放音频轨道和源（dispose 后不可再用）
-        audioTrack?.dispose()
-        audioTrack = null
-        audioSource?.dispose()
-        audioSource = null
+        audioTrack.dispose()
+        audioSource.dispose()
 
         // 释放 Factory
-        peerConnectionFactory?.dispose()
-        peerConnectionFactory = null
+        peerConnectionFactory.dispose()
 
         // 释放音频设备模块（如有单独释放方法，可调用）
-        audioDeviceModule?.release()
+        audioDeviceModule.release()
 
         Log.d(TAG, "WebRTC 资源已释放")
     }
@@ -206,11 +209,13 @@ class MainActivity : AppCompatActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
+fun RegisterButton(onClick:() -> Unit, modifier: Modifier = Modifier) {
+    Button(
+        onClick = { onClick() },
         modifier = modifier
-    )
+    ) {
+        Text("注册")
+    }
 }
 
 @Composable
@@ -219,17 +224,36 @@ fun TestCallAutoAnswer(onClick:() -> Unit, modifier: Modifier = Modifier) {
         onClick = { onClick() },
         modifier = modifier
     ) {
-        Text("测试")
+        Text("拨号等待回答并发送candidates建立通讯")
     }
 }
 
-@Preview(showBackground = true)
+// 定义 TextField 组件，同时接收值和回调
 @Composable
-fun GreetingPreview() {
-    WebrtcTheme {
-        TestCallAutoAnswer({
-            Log.i("GreetingPreview", "button clicked")
-        })
-        Greeting("Android")
-    }
+fun LocalIdTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text("我的ID - 字母与数字组成") },
+        modifier = modifier
+    )
+}
+
+// 定义 TextField 组件，同时接收值和回调
+@Composable
+fun RemoteIdTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text("对方ID") },
+        modifier = modifier
+    )
 }
