@@ -1,11 +1,14 @@
 package com.github.xiawusharve.webrtc
 
 import android.util.Log
+import org.webrtc.AddIceObserver
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
+import org.webrtc.IceCandidateErrorEvent
 import org.webrtc.MediaConstraints
 import org.webrtc.MediaStream
 import org.webrtc.PeerConnection
+import org.webrtc.RtpReceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 
@@ -16,6 +19,17 @@ class RtcClient(
     private val candidates: ArrayList<IceCandidate> = ArrayList()
     private var candidateReady = false
     private lateinit var peerConnection: PeerConnection
+
+    private val addIceObserver = object : AddIceObserver {
+        val TAG = "addIceCandidate"
+        override fun onAddSuccess() {
+            Log.v(TAG, "onAddSuccess")
+        }
+
+        override fun onAddFailure(error: String?) {
+            Log.e(TAG, "onAddFailure: $error")
+        }
+    }
     private val answerObs = object : SdpObserver {
         val TAG = "answerObs"
         override fun onCreateSuccess(sdp: SessionDescription) {
@@ -31,7 +45,8 @@ class RtcClient(
             Log.d(TAG, "adding cached candidates")
             candidateReady = true
             for (c in candidates) {
-                peerConnection.addIceCandidate(c)
+                Log.d(TAG, "cached candidate: ${c.sdp}")
+                peerConnection.addIceCandidate(c, addIceObserver)
             }
         }
 
@@ -98,7 +113,7 @@ class RtcClient(
     override fun onCandidate(candidate: IceCandidate) {
         Log.d(TAG, "received candidate, adding to peer connection")
         if (candidateReady) {
-            peerConnection.addIceCandidate(candidate)
+            peerConnection.addIceCandidate(candidate, addIceObserver)
         } else {
             this.candidates.add(candidate)
         }
@@ -109,19 +124,19 @@ class RtcClient(
     }
 
     override fun onSignalingChange(newState: PeerConnection.SignalingState?) {
-        Log.v(TAG, "onSignalingChange")
+        Log.v(TAG, "onSignalingChange: ${newState?.name}")
     }
 
     override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState?) {
-        Log.v(TAG, "onIceConnectionChange")
+        Log.v(TAG, "onIceConnectionChange: ${newState?.name}")
     }
 
     override fun onIceConnectionReceivingChange(receiving: Boolean) {
-        Log.v(TAG, "onIceConnectionReceivingChange")
+        Log.v(TAG, "onIceConnectionReceivingChange: $receiving")
     }
 
     override fun onIceGatheringChange(newState: PeerConnection.IceGatheringState?) {
-        Log.v(TAG, "onIceGatheringChange")
+        Log.v(TAG, "onIceGatheringChange: ${newState?.name}")
     }
 
     override fun onIceCandidate(candidate: IceCandidate?) {
@@ -130,8 +145,13 @@ class RtcClient(
         signalingClient.sendCandidate(candidate)
     }
 
+    override fun onIceCandidateError(event: IceCandidateErrorEvent?) {
+        super.onIceCandidateError(event)
+        Log.e(TAG, "onIceCandidateError: ${event?.errorText}")
+    }
+
     override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate?>?) {
-        Log.v(TAG, "onIceCandidatesRemoved")
+        peerConnection.removeIceCandidates(candidates)
     }
 
     override fun onAddStream(stream: MediaStream?) {
@@ -164,5 +184,9 @@ class RtcClient(
     fun connect() {
         Log.d(TAG, "====START COMMUNICATION====")
         signalingClient.register()
+    }
+
+    override fun onAddTrack(receiver: RtpReceiver?, mediaStreams: Array<out MediaStream?>?) {
+        super.onAddTrack(receiver, mediaStreams)
     }
 }

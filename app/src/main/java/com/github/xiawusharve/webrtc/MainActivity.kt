@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "MainActivity"
         private const val AUDIO_TRACK_ID = "demoAudioTrackId"
         private const val STREAM_ID = "demoStreamId"
-        private const val TURN_URL = "turn:101.37.76.38:3480"
+        private const val TURN_URL = "turn:101.37.76.38:3480?transport=udp"
         private const val TURN_USERNAME = "sharve"
         private const val TURN_PASSWORD = "sharve"
         private const val WS_URL = "ws://101.37.76.38:3001"
@@ -127,7 +127,7 @@ class MainActivity : AppCompatActivity() {
         try {
             // 1. 初始化 PeerConnectionFactory（生产环境关闭 Tracer）
             val initOptions = PeerConnectionFactory.InitializationOptions.builder(this)
-                .setEnableInternalTracer(false) // 生产环境务必设为 false
+                .setEnableInternalTracer(true) // 生产环境务必设为 false
                 .createInitializationOptions()
             PeerConnectionFactory.initialize(initOptions)
 
@@ -135,8 +135,8 @@ class MainActivity : AppCompatActivity() {
                 JavaAudioDeviceModule.builder(this).createAudioDeviceModule()
             // 3. 创建 Factory
             val factory = PeerConnectionFactory.builder()
-                .setAudioDeviceModule(audioDeviceModule)
                 .setOptions(PeerConnectionFactory.Options())
+                .setAudioDeviceModule(audioDeviceModule)
                 .createPeerConnectionFactory()
             this.audioDeviceModule = audioDeviceModule
             peerConnectionFactory = factory
@@ -146,12 +146,25 @@ class MainActivity : AppCompatActivity() {
             audioTrack = factory.createAudioTrack(AUDIO_TRACK_ID, audioSource)
 
             // 5. 配置 ICE 服务器
-            val iceServer = PeerConnection.IceServer.builder(TURN_URL)
-                .setUsername(TURN_USERNAME)
-                .setPassword(TURN_PASSWORD)
-                .createIceServer()
-            val rtcConfig = PeerConnection.RTCConfiguration(listOf(iceServer)).apply {
+            val iceServers = listOf(
+                PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
+//                PeerConnection.IceServer.builder(TURN_URL)
+//                    .setUsername(TURN_USERNAME)
+//                    .setPassword(TURN_PASSWORD)
+//                    .createIceServer(),
+//                PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+//                PeerConnection.IceServer.builder("turn:openrelay.metered.ca:80")
+//                    .setUsername("openrelayproject")
+//                    .setPassword("openrelayproject")
+//                    .createIceServer(),
+//                PeerConnection.IceServer.builder("turns:openrelay.metered.ca:443")
+//                    .setUsername("openrelayproject")
+//                    .setPassword("openrelayproject")
+//                    .createIceServer()
+            )
+            val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
                 // 可在此配置其他选项，例如 continualGatheringPolicy 等
+                iceTransportsType = PeerConnection.IceTransportsType.RELAY
             }
 
             // 6. 创建 PeerConnection（必须传入 Observer）
