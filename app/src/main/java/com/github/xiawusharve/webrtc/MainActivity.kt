@@ -1,8 +1,6 @@
 package com.github.xiawusharve.webrtc
 
 import android.Manifest
-import android.content.Context
-import android.media.AudioManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -147,20 +145,12 @@ class MainActivity : AppCompatActivity() {
 
             // 5. 配置 ICE 服务器
             val iceServers = listOf(
-                PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
-//                PeerConnection.IceServer.builder(TURN_URL)
-//                    .setUsername(TURN_USERNAME)
-//                    .setPassword(TURN_PASSWORD)
-//                    .createIceServer(),
+//                PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
+                PeerConnection.IceServer.builder(TURN_URL)
+                    .setUsername(TURN_USERNAME)
+                    .setPassword(TURN_PASSWORD)
+                    .createIceServer(),
 //                PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
-//                PeerConnection.IceServer.builder("turn:openrelay.metered.ca:80")
-//                    .setUsername("openrelayproject")
-//                    .setPassword("openrelayproject")
-//                    .createIceServer(),
-//                PeerConnection.IceServer.builder("turns:openrelay.metered.ca:443")
-//                    .setUsername("openrelayproject")
-//                    .setPassword("openrelayproject")
-//                    .createIceServer()
             )
             val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
                 // 可在此配置其他选项，例如 continualGatheringPolicy 等
@@ -179,11 +169,6 @@ class MainActivity : AppCompatActivity() {
 
             // 7. 添加音频轨道
             peerConnection.addTrack(audioTrack, Collections.singletonList(STREAM_ID))
-
-            // 配置音频路由
-            val audioManager = applicationContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-            audioManager.isSpeakerphoneOn = true
 
             Log.i(TAG, "WebRTC 初始化成功")
             this.signalingClient = signalingClient
