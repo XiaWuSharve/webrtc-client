@@ -15,21 +15,8 @@ open class SignalingClient(
 ) : WebSocketClient(serverUri) {
     private lateinit var localId: String
     private lateinit var remoteId: String
-    private lateinit var sdpExchangeObserver: SdpExchangeObserverInterface
-    private val TAG = "MyWebSocketClient"
-    private lateinit var mySessionId: String
-
-    fun setRemoteId(remoteId: String) {
-        this.remoteId = remoteId
-    }
-
-    fun setLocalId(localId: String) {
-        this.localId = localId
-    }
-
-    fun setSdpExchangeObserver(sdpExchangeObserver: SdpExchangeObserverInterface) {
-        this.sdpExchangeObserver = sdpExchangeObserver
-    }
+    private lateinit var signalingClientObserver: SignalExchangeObserver
+    private val TAG = "SignalingClient"
 
     override fun onOpen(handshakedata: ServerHandshake?) {
         Log.i(TAG, "onOpen handshakedata=$handshakedata")
@@ -46,14 +33,14 @@ open class SignalingClient(
                     if (status != 0) {
                         Log.e(TAG, "registering user failed, see server logs")
                     }
-                    sdpExchangeObserver.onConnect()
+                    signalingClientObserver.onConnected(status)
                 }
                 "call" -> {
                     val data = jsonObject.getJSONObject("data")
                     val remoteSdp = data.getString("sdp")
                     val remoteId = data.getString("remoteId")
-                    this.setRemoteId(remoteId)
-                    sdpExchangeObserver.onCall(
+                    this.remoteId = remoteId
+                    signalingClientObserver.onReceiveCall(
                         SessionDescription(
                             SessionDescription.Type.OFFER, remoteSdp
                         )
@@ -61,7 +48,7 @@ open class SignalingClient(
                 }
                 "answer" -> {
                     val remoteSdp = jsonObject.getString("data")
-                    sdpExchangeObserver.onAnswer(
+                    signalingClientObserver.onReceiveAnswer(
                         SessionDescription(
                             SessionDescription.Type.ANSWER,
                             remoteSdp
@@ -72,7 +59,7 @@ open class SignalingClient(
                     val sdpMid = data.getString("sdpMid")
                     val sdpMLineIndex = data.getInt("sdpMLineIndex")
                     val sdp = data.getString("sdp")
-                    sdpExchangeObserver.onCandidate(IceCandidate(sdpMid, sdpMLineIndex, sdp))
+                    signalingClientObserver.onReceiveCandidate(IceCandidate(sdpMid, sdpMLineIndex, sdp))
                 }
             }
         } catch (e: JSONException) {
@@ -88,8 +75,11 @@ open class SignalingClient(
         Log.i(TAG, "onError ex=$ex")
     }
 
-    fun register() {
+    fun register(localId: String, signalingClientObserver: SignalExchangeObserver) {
         Log.d(TAG, "registering user")
+        this.localId = localId
+        signalingClientObserver.setSignalingClient(this)
+        this.signalingClientObserver = signalingClientObserver
         val jsonObject = JSONObject()
         jsonObject.put("type", "connect")
         jsonObject.put("data", this.localId)
@@ -130,5 +120,9 @@ open class SignalingClient(
         jsonObject.put("type", "candidate")
             .put("data", data)
         send(jsonObject.toString())
+    }
+
+    fun setRemoteId(remoteId: String) {
+        this.remoteId = remoteId
     }
 }

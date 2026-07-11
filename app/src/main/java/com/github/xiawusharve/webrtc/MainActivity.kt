@@ -8,10 +8,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -23,33 +26,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.permissionx.guolindev.PermissionX
-import org.webrtc.*
-import org.webrtc.audio.AudioDeviceModule
-import org.webrtc.audio.JavaAudioDeviceModule
 import java.net.URI
-import java.util.Collections
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var signalExchangeObserver: SignalExchangeObserver
+    private lateinit var signalingClient: SignalingClient
+    private lateinit var myPeerConnectionFactoryBuilder: MyPeerConnectionFactoryBuilder
+
     companion object {
         private const val TAG = "MainActivity"
-        private const val AUDIO_TRACK_ID = "demoAudioTrackId"
-        private const val STREAM_ID = "demoStreamId"
         private const val TURN_URL = "turn:101.37.76.38:3480?transport=udp"
         private const val TURN_USERNAME = "sharve"
         private const val TURN_PASSWORD = "sharve"
+        private const val AUDIO_TRACK_ID = "demoAudioTrackId"
         private const val WS_URL = "ws://101.37.76.38:3001"
     }
-
-    // 持有 WebRTC 核心对象，方便在 onDestroy 中清理
-    private lateinit var peerConnectionFactory: PeerConnectionFactory
-    private lateinit var audioTrack: AudioTrack
-    private lateinit var audioSource: AudioSource
-    private lateinit var peerConnection: PeerConnection
-    private lateinit var audioDeviceModule: AudioDeviceModule
-
-    private lateinit var signalingClient: SignalingClient
-    private lateinit var rtcClient: RtcClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,6 +53,8 @@ class MainActivity : AppCompatActivity() {
                         .fillMaxSize()
                         .padding(padding)  // ✅ 整个 Column 都避开系统栏
                 ) {
+                    MessageList(listOf("hello world", "hello sharve"))
+
                     var localId by remember { mutableStateOf("") }
                     LocalIdTextField(localId, {value -> localId = value})
 
@@ -83,16 +77,37 @@ class MainActivity : AppCompatActivity() {
         requestPermissionsAndInit()
     }
 
-    private fun testCall(remoteId: String) {
-        Log.d(TAG, "testing communication...")
-        signalingClient.setRemoteId(remoteId)
-        rtcClient.call()
-    }
-
-    private fun register(localId: String) {
-        Log.i(TAG, "注册用户中")
-        signalingClient.setLocalId(localId)
-        signalingClient.register() // TODO: 添加连接成功回调
+    fun initWebRTC() {
+        Log.i(TAG, "初始化WebRTC")
+        try {
+            // connect
+            val signalingClient = SignalingClient(URI(WS_URL))
+            signalingClient.connect()
+            // webrtc
+            val myPeerConnectionFactoryBuilder = MyPeerConnectionFactoryBuilder(this)
+            myPeerConnectionFactoryBuilder.createRTCConfiguration(
+                URL = TURN_URL,
+                username = TURN_USERNAME,
+                password = TURN_PASSWORD
+            )
+            myPeerConnectionFactoryBuilder.initializeFactory(true)
+            myPeerConnectionFactoryBuilder.createAudioDeviceModule()
+            myPeerConnectionFactoryBuilder.createPeerConnectionFactory()
+            myPeerConnectionFactoryBuilder.createAudioTrack(AUDIO_TRACK_ID)
+            Log.i(TAG, "WebRTC 初始化成功")
+            val signalExchangeObserver = SignalExchangeObserver(
+                myPeerConnectionFactoryBuilder,
+                PeerConnectionObserver(),
+            )
+            this.myPeerConnectionFactoryBuilder = myPeerConnectionFactoryBuilder
+            this.signalingClient = signalingClient
+            this.signalExchangeObserver = signalExchangeObserver
+        } catch (e: Exception) {
+            Log.e(TAG, "WebRTC 初始化失败", e)
+            Toast.makeText(this, "初始化失败: ${e.message}", Toast.LENGTH_LONG).show()
+            // 清理已分配的资源
+//            releaseResources()
+        }
     }
 
     private fun requestPermissionsAndInit() {
@@ -120,89 +135,43 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
-    fun initWebRTC() {
-        Log.i(TAG, "初始化WebRTC")
-        try {
-            // 1. 初始化 PeerConnectionFactory（生产环境关闭 Tracer）
-            val initOptions = PeerConnectionFactory.InitializationOptions.builder(this)
-                .setEnableInternalTracer(true) // 生产环境务必设为 false
-                .createInitializationOptions()
-            PeerConnectionFactory.initialize(initOptions)
+    private fun register(localId: String) {
+        Log.i(TAG, "注册用户中")
 
-            val audioDeviceModule =
-                JavaAudioDeviceModule.builder(this).createAudioDeviceModule()
-            // 3. 创建 Factory
-            val factory = PeerConnectionFactory.builder()
-                .setOptions(PeerConnectionFactory.Options())
-                .setAudioDeviceModule(audioDeviceModule)
-                .createPeerConnectionFactory()
-            this.audioDeviceModule = audioDeviceModule
-            peerConnectionFactory = factory
-
-            // 4. 创建音频源及轨道
-            audioSource = factory.createAudioSource(MediaConstraints())
-            audioTrack = factory.createAudioTrack(AUDIO_TRACK_ID, audioSource)
-
-            // 5. 配置 ICE 服务器
-            val iceServers = listOf(
-//                PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
-                PeerConnection.IceServer.builder(TURN_URL)
-                    .setUsername(TURN_USERNAME)
-                    .setPassword(TURN_PASSWORD)
-                    .createIceServer(),
-//                PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
-            )
-            val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
-                // 可在此配置其他选项，例如 continualGatheringPolicy 等
-                iceTransportsType = PeerConnection.IceTransportsType.RELAY
-            }
-
-            // 6. 创建 PeerConnection（必须传入 Observer）
-            val signalingClient = SignalingClient(URI(WS_URL))
-            signalingClient.connect()
-            val rtcClient = RtcClient(signalingClient)
-
-            signalingClient.setSdpExchangeObserver(rtcClient)
-            val peerConnection = factory.createPeerConnection(rtcConfig, rtcClient)
-                ?: throw IllegalStateException("无法创建 PeerConnection")
-            rtcClient.setPeerConnection(peerConnection)
-
-            // 7. 添加音频轨道
-            peerConnection.addTrack(audioTrack, Collections.singletonList(STREAM_ID))
-
-            Log.i(TAG, "WebRTC 初始化成功")
-            this.signalingClient = signalingClient
-            this.rtcClient = rtcClient
-            this.peerConnection = peerConnection
-        } catch (e: Exception) {
-            Log.e(TAG, "WebRTC 初始化失败", e)
-            Toast.makeText(this, "初始化失败: ${e.message}", Toast.LENGTH_LONG).show()
-            // 清理已分配的资源
-            releaseResources()
-        }
+        signalingClient.register(
+            localId = localId,
+            signalingClientObserver = signalExchangeObserver
+        ) // TODO: 添加连接成功回调
     }
 
-    override fun onDestroy() {
-        releaseResources()
-        super.onDestroy()
+    private fun testCall(remoteId: String) {
+        Log.d(TAG, "testing communication...")
+        // TODO 交给rtc client设置
+        signalingClient.setRemoteId(remoteId)
+        signalExchangeObserver.onCall()
     }
 
-    private fun releaseResources() {
-        // 关闭 PeerConnection
-        peerConnection.close()
-
-        // 释放音频轨道和源（dispose 后不可再用）
-        audioTrack.dispose()
-        audioSource.dispose()
-
-        // 释放 Factory
-        peerConnectionFactory.dispose()
-
-        // 释放音频设备模块（如有单独释放方法，可调用）
-        audioDeviceModule.release()
-
-        Log.d(TAG, "WebRTC 资源已释放")
-    }
+//    override fun onDestroy() {
+//        releaseResources()
+//        super.onDestroy()
+//    }
+//
+//    private fun releaseResources() {
+//        // 关闭 PeerConnection
+//        peerConnection.close()
+//
+//        // 释放音频轨道和源（dispose 后不可再用）
+//        audioTrack.dispose()
+//        audioSource.dispose()
+//
+//        // 释放 Factory
+//        myPeerConnectionFactoryBuilder.dispose()
+//
+//        // 释放音频设备模块（如有单独释放方法，可调用）
+//        audioDeviceModule.release()
+//
+//        Log.d(TAG, "WebRTC 资源已释放")
+//    }
 
 }
 
@@ -254,4 +223,20 @@ fun RemoteIdTextField(
         label = { Text("对方ID") },
         modifier = modifier
     )
+}
+
+@Composable
+fun MessageList(messages: List<String>) {
+    LazyColumn {
+        items(messages) { message -> Message(message)}
+    }
+}
+
+@Composable
+fun Message(message: String) {
+    Row() {
+        Text("sharve")
+        Text(": ")
+        Text(message)
+    }
 }

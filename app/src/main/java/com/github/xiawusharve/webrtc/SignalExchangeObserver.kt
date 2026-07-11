@@ -1,0 +1,172 @@
+package com.github.xiawusharve.webrtc
+
+import android.util.Log
+import org.webrtc.IceCandidate
+import org.webrtc.SdpObserver
+import org.webrtc.SessionDescription
+
+class SignalExchangeObserver(
+    private val peerConnectionFactoryBuilder: MyPeerConnectionFactoryBuilder,
+    private val peerConnectionObserver: PeerConnectionObserver,
+) {
+    init {
+        peerConnectionObserver.setSignalExchangeObserver(this)
+    }
+    companion object {
+        private const val TAG = "SignalExchangeObserver"
+    }
+    private val candidates: ArrayList<IceCandidate> = ArrayList()
+    private var candidateReady = false
+    private lateinit var peerConnection: MyPeerConnection
+    private lateinit var signalingClient: SignalingClient
+
+    fun setPeerConnection(peerConnection: MyPeerConnection) {
+        this.peerConnection = peerConnection
+    }
+    fun setSignalingClient(signalingClient: SignalingClient) {
+        this.signalingClient = signalingClient
+    }
+
+    fun onReceiveCall(sdp: SessionDescription) {
+        Log.d(TAG, "received call")
+        peerConnection.setRemoteSdp(object : SdpObserver {
+            override fun onCreateSuccess(p0: SessionDescription?) {
+                TODO("Not yet implemented")
+            }
+
+            override fun onSetSuccess() {
+                Log.d(TAG, "setRemoteSdp success")
+                peerConnection.createAnswer(object: SdpObserver {
+                    override fun onCreateSuccess(p0: SessionDescription?) {
+                        if (p0 != null) {
+                            peerConnection.setLocalSdp(object : SdpObserver {
+                                override fun onCreateSuccess(p0: SessionDescription?) {
+                                    TODO("Not yet implemented")
+                                }
+
+                                override fun onSetSuccess() {
+                                    signalingClient.answer(p0)
+                                }
+
+                                override fun onCreateFailure(p0: String?) {
+                                    TODO("Not yet implemented")
+                                }
+
+                                override fun onSetFailure(p0: String?) {
+                                    Log.e(TAG, "")
+                                }
+                            }, p0)
+                        }
+                    }
+
+                    override fun onSetSuccess() {
+                        TODO("Not yet implemented")
+                    }
+
+                    override fun onCreateFailure(p0: String?) {
+                        TODO("Not yet implemented")
+                    }
+
+                    override fun onSetFailure(p0: String?) {
+                        Log.d(TAG, "")
+                    }
+
+                })
+            }
+
+            override fun onCreateFailure(p0: String?) {
+                TODO("Not yet implemented")
+            }
+
+            override fun onSetFailure(p0: String?) {
+                Log.e(TAG, "setRemoteSdp ")
+            }
+        }, sdp)
+    }
+
+    fun onReceiveAnswer(sdp: SessionDescription) {
+        Log.d(TAG, "received answer")
+        peerConnection.setRemoteSdp(object : SdpObserver {
+            override fun onCreateSuccess(p0: SessionDescription?) {
+                TODO("Not yet implemented")
+            }
+
+            override fun onSetSuccess() {
+                Log.d(TAG, "")
+            }
+
+            override fun onCreateFailure(p0: String?) {
+                TODO("Not yet implemented")
+            }
+
+            override fun onSetFailure(p0: String?) {
+                //
+            }
+        } , sdp)
+    }
+
+    fun onReceiveCandidate(candidate: IceCandidate) {
+        Log.d(TAG, "received candidate, adding to peer connection")
+        if (candidateReady) {
+            peerConnection.addCandidate(candidate)
+        } else {
+            this.candidates.add(candidate)
+        }
+    }
+
+    fun onConnected(code: Int) {
+        Log.d(TAG, "connection established: $code")
+        this.peerConnection = peerConnectionFactoryBuilder.createMyPeerConnection(peerConnectionObserver)
+        peerConnection.addTrack()
+    }
+
+    fun onCall() {
+        Log.d(TAG, "onCall")
+        peerConnection.createOffer(object : SdpObserver {
+            override fun onCreateSuccess(p0: SessionDescription?) {
+                if (p0 != null) signalingClient.call(p0)
+            }
+
+            override fun onSetSuccess() {
+                TODO("Not yet implemented")
+            }
+
+            override fun onCreateFailure(p0: String?) {
+                //
+            }
+
+            override fun onSetFailure(p0: String?) {
+                TODO("Not yet implemented")
+            }
+        })
+    }
+
+    fun onAnswer() {
+        peerConnection.createAnswer(object : SdpObserver {
+            override fun onCreateSuccess(p0: SessionDescription?) {
+                if (p0 != null)
+                    signalingClient.answer(p0)
+            }
+
+            override fun onSetSuccess() {
+                TODO("Not yet implemented")
+            }
+
+            override fun onCreateFailure(p0: String?) {
+                //
+            }
+
+            override fun onSetFailure(p0: String?) {
+                TODO("Not yet implemented")
+            }
+        })
+    }
+
+    fun onConnect() {
+        TODO("Not yet implemented")
+    }
+
+    fun onCandidate(candidate: IceCandidate) {
+        signalingClient.sendCandidate(candidate)
+    }
+}

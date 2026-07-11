@@ -54,7 +54,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.java.websocket)
-    implementation(libs.android)
+//    implementation(libs.android)
+    implementation(libs.stream.webrtc.android)
     implementation(libs.permissionx)
     implementation(libs.androidx.appcompat)
 }
