@@ -6,6 +6,7 @@ import org.webrtc.MediaConstraints
 import org.webrtc.PeerConnection
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
+import java.util.Collections
 
 class MyPeerConnection(
     private val peerConnection: PeerConnection,

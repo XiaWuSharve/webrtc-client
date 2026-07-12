@@ -1,6 +1,7 @@
 package com.github.xiawusharve.webrtc
 
 import android.content.Context
+import android.media.AudioManager
 import android.os.Build
 import org.webrtc.AudioTrack
 import org.webrtc.MediaConstraints
@@ -9,6 +10,7 @@ import org.webrtc.PeerConnectionFactory
 import org.webrtc.audio.AudioDeviceModule
 import org.webrtc.audio.JavaAudioDeviceModule
 import android.util.Log
+import org.webrtc.AudioSource
 
 class MyPeerConnectionFactoryBuilder(
     private val context: Context,
@@ -16,6 +18,8 @@ class MyPeerConnectionFactoryBuilder(
     companion object {
         const val TAG = "MyPeerConnectionFactoryBuilder"
     }
+
+    private lateinit var audioSource: AudioSource
     private lateinit var peerConnectionFactory: PeerConnectionFactory
     private lateinit var rtcConfiguration: PeerConnection.RTCConfiguration
     private lateinit var audioTrack: AudioTrack
@@ -36,7 +40,7 @@ class MyPeerConnectionFactoryBuilder(
                 .setPassword(password)
                 .createIceServer())
         this.rtcConfiguration = PeerConnection.RTCConfiguration(iceServers).apply {
-            iceTransportsType = PeerConnection.IceTransportsType.RELAY
+//            iceTransportsType = PeerConnection.IceTransportsType.RELAY
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
         }
     }
@@ -95,19 +99,26 @@ class MyPeerConnectionFactoryBuilder(
                 }
             })
             .createAudioDeviceModule()
+            .also {
+                it.setMicrophoneMute(false)
+                it.setSpeakerMute(false)
+            }
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        audioManager.isSpeakerphoneOn = true   // 使用扬声器，false 则使用听筒
     }
 
     fun createPeerConnectionFactory() {
         // 创建 Factory
         this.peerConnectionFactory = PeerConnectionFactory.builder()
-            .setOptions(PeerConnectionFactory.Options())
             .setAudioDeviceModule(audioDeviceModule)
+            .setOptions(PeerConnectionFactory.Options())
             .createPeerConnectionFactory()
     }
 
     fun createAudioTrack(audioTrackId: String) {
-        val audioSource = peerConnectionFactory.createAudioSource(MediaConstraints())
+        this.audioSource = peerConnectionFactory.createAudioSource(MediaConstraints())
         this.audioTrack = peerConnectionFactory.createAudioTrack(audioTrackId, audioSource)
+        audioTrack.setEnabled(true)
     }
     fun createMyPeerConnection(peerConnectionObserver: PeerConnectionObserver): MyPeerConnection {
         val peerConnection = peerConnectionFactory.createPeerConnection(rtcConfiguration, peerConnectionObserver)

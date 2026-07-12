@@ -36,42 +36,7 @@ class SignalExchangeObserver(
 
             override fun onSetSuccess() {
                 Log.d(TAG, "setRemoteSdp success")
-                peerConnection.createAnswer(object: SdpObserver {
-                    override fun onCreateSuccess(p0: SessionDescription?) {
-                        if (p0 != null) {
-                            peerConnection.setLocalSdp(object : SdpObserver {
-                                override fun onCreateSuccess(p0: SessionDescription?) {
-                                    TODO("Not yet implemented")
-                                }
-
-                                override fun onSetSuccess() {
-                                    signalingClient.answer(p0)
-                                }
-
-                                override fun onCreateFailure(p0: String?) {
-                                    TODO("Not yet implemented")
-                                }
-
-                                override fun onSetFailure(p0: String?) {
-                                    Log.e(TAG, "")
-                                }
-                            }, p0)
-                        }
-                    }
-
-                    override fun onSetSuccess() {
-                        TODO("Not yet implemented")
-                    }
-
-                    override fun onCreateFailure(p0: String?) {
-                        TODO("Not yet implemented")
-                    }
-
-                    override fun onSetFailure(p0: String?) {
-                        Log.d(TAG, "")
-                    }
-
-                })
+                onAnswer()
             }
 
             override fun onCreateFailure(p0: String?) {
@@ -79,7 +44,7 @@ class SignalExchangeObserver(
             }
 
             override fun onSetFailure(p0: String?) {
-                Log.e(TAG, "setRemoteSdp ")
+                Log.e(TAG, "onSetFailure: $p0")
             }
         }, sdp)
     }
@@ -92,7 +57,13 @@ class SignalExchangeObserver(
             }
 
             override fun onSetSuccess() {
-                Log.d(TAG, "")
+                Log.d(TAG, "set remote sdp success")
+                Log.d(TAG, "adding cached candidates")
+                candidateReady = true
+                for (c in candidates) {
+                    Log.d(TAG, "cached candidate: ${c.sdp}")
+                    peerConnection.addCandidate(c)
+                }
             }
 
             override fun onCreateFailure(p0: String?) {
@@ -100,7 +71,7 @@ class SignalExchangeObserver(
             }
 
             override fun onSetFailure(p0: String?) {
-                //
+                Log.e(TAG, "onSetFailure: $p0")
             }
         } , sdp)
     }
@@ -124,7 +95,23 @@ class SignalExchangeObserver(
         Log.d(TAG, "onCall")
         peerConnection.createOffer(object : SdpObserver {
             override fun onCreateSuccess(p0: SessionDescription?) {
-                if (p0 != null) signalingClient.call(p0)
+                if (p0 != null) peerConnection.setLocalSdp(object : SdpObserver {
+                    override fun onCreateSuccess(sdp: SessionDescription?) {
+                        TODO("Not yet implemented")
+                    }
+
+                    override fun onSetSuccess() {
+                        signalingClient.call(p0)
+                    }
+
+                    override fun onCreateFailure(error: String?) {
+                        TODO("Not yet implemented")
+                    }
+
+                    override fun onSetFailure(error: String?) {
+                        Log.e(TAG, "onSetFailure: $error")
+                    }
+                }, p0)
             }
 
             override fun onSetSuccess() {
@@ -132,7 +119,7 @@ class SignalExchangeObserver(
             }
 
             override fun onCreateFailure(p0: String?) {
-                //
+                Log.e(TAG, "onCreateFailure")
             }
 
             override fun onSetFailure(p0: String?) {
@@ -145,7 +132,28 @@ class SignalExchangeObserver(
         peerConnection.createAnswer(object : SdpObserver {
             override fun onCreateSuccess(p0: SessionDescription?) {
                 if (p0 != null)
-                    signalingClient.answer(p0)
+                    peerConnection.setLocalSdp(object : SdpObserver {
+                        override fun onCreateSuccess(sdp: SessionDescription?) {
+                            TODO("Not yet implemented")
+                        }
+
+                        override fun onSetSuccess() {
+                            signalingClient.answer(p0)
+                            candidateReady = true
+                            for (c in candidates) {
+                                Log.d(TAG, "cached candidate: ${c.sdp}")
+                                peerConnection.addCandidate(c)
+                            }
+                        }
+
+                        override fun onCreateFailure(error: String?) {
+                            TODO("Not yet implemented")
+                        }
+
+                        override fun onSetFailure(error: String?) {
+                            Log.e(TAG, "onSetFailure: $error")
+                        }
+                    }, p0)
             }
 
             override fun onSetSuccess() {
@@ -153,7 +161,7 @@ class SignalExchangeObserver(
             }
 
             override fun onCreateFailure(p0: String?) {
-                //
+                Log.e(TAG, "onCreateFailure")
             }
 
             override fun onSetFailure(p0: String?) {
