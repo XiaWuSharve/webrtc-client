@@ -116,7 +116,7 @@ class SignalExchangeObserver(
                     },
                         builder(
                             p0
-                        ).enableOpusDtx().build()
+                        ).enableOpusDtx().setMaxAverageBitRate(12000).build()
                     )
                 }
             }
@@ -163,7 +163,7 @@ class SignalExchangeObserver(
                     },
                         builder(
                             p0
-                        ).enableOpusDtx().build()
+                        ).enableOpusDtx().setMaxAverageBitRate(12000).build()
                     )
                 }
             }

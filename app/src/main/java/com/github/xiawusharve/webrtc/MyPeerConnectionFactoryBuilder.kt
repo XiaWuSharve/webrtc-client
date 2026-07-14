@@ -13,6 +13,7 @@ import org.webrtc.PeerConnection
 import org.webrtc.PeerConnectionFactory
 import org.webrtc.audio.AudioDeviceModule
 import org.webrtc.audio.JavaAudioDeviceModule
+import org.webrtc.voiceengine.WebRtcAudioEffects
 
 class MyPeerConnectionFactoryBuilder(
     private val context: Context,
@@ -53,6 +54,16 @@ class MyPeerConnectionFactoryBuilder(
     }
 
     fun createAudioDeviceModule() {
+        // TODO 精细控制
+//        AudioRecord
+//            .Builder()
+//            .setAudioFormat(
+//                new AudioFormat.Builder()
+//                    .setSampleRate(16000)
+//                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+//                    .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
+//                    .build()
+//            )
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
         var speakerDevice: AudioDeviceInfo?
@@ -137,6 +148,9 @@ class MyPeerConnectionFactoryBuilder(
                 it.setPreferredMicrophoneFieldDimension((-1).toFloat())
                 it.setNoiseSuppressorEnabled(false)
             }
+//        val webRtcAudioEffects = WebRtcAudioEffects.create()
+//        webRtcAudioEffects.setNS(false)
+//        webRtcAudioEffects.enable()
     }
 
     fun createPeerConnectionFactory() {
@@ -155,7 +169,8 @@ class MyPeerConnectionFactoryBuilder(
             MediaConstraints.KeyValuePair("sampleSize", "16"),
             MediaConstraints.KeyValuePair("autoGainControl", "true"),
             MediaConstraints.KeyValuePair("noiseSuppression", "false"),
-            MediaConstraints.KeyValuePair("dtx", "true")
+            MediaConstraints.KeyValuePair("dtx", "true"),
+            MediaConstraints.KeyValuePair("channelCount", "2")
         ))
         this.audioSource = peerConnectionFactory.createAudioSource(constraints)
         this.audioTrack = peerConnectionFactory.createAudioTrack(audioTrackId, audioSource)
