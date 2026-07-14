@@ -88,30 +88,37 @@ class SignalExchangeObserver(
     fun onConnected(code: Int) {
         Log.d(TAG, "connection established: $code")
         this.peerConnection = peerConnectionFactoryBuilder.createMyPeerConnection(peerConnectionObserver)
-        peerConnection.addTrack()
+//        peerConnection.addTrack()
     }
 
     fun onCall() {
         Log.d(TAG, "onCall")
+        // TODO sdp builder and 立体声 采样率 VGA等
         peerConnection.createOffer(object : SdpObserver {
             override fun onCreateSuccess(p0: SessionDescription?) {
-                if (p0 != null) peerConnection.setLocalSdp(object : SdpObserver {
-                    override fun onCreateSuccess(sdp: SessionDescription?) {
-                        TODO("Not yet implemented")
-                    }
+                if (p0 != null) {
+                    peerConnection.setLocalSdp(object : SdpObserver {
+                        override fun onCreateSuccess(sdp: SessionDescription?) {
+                            TODO("Not yet implemented")
+                        }
 
-                    override fun onSetSuccess() {
-                        signalingClient.call(p0)
-                    }
+                        override fun onSetSuccess() {
+                            signalingClient.call(p0)
+                        }
 
-                    override fun onCreateFailure(error: String?) {
-                        TODO("Not yet implemented")
-                    }
+                        override fun onCreateFailure(error: String?) {
+                            TODO("Not yet implemented")
+                        }
 
-                    override fun onSetFailure(error: String?) {
-                        Log.e(TAG, "onSetFailure: $error")
-                    }
-                }, p0)
+                        override fun onSetFailure(error: String?) {
+                            Log.e(TAG, "onSetFailure: $error")
+                        }
+                    },
+                        builder(
+                            p0
+                        ).enableOpusDtx().build()
+                    )
+                }
             }
 
             override fun onSetSuccess() {
@@ -131,7 +138,7 @@ class SignalExchangeObserver(
     fun onAnswer() {
         peerConnection.createAnswer(object : SdpObserver {
             override fun onCreateSuccess(p0: SessionDescription?) {
-                if (p0 != null)
+                if (p0 != null) {
                     peerConnection.setLocalSdp(object : SdpObserver {
                         override fun onCreateSuccess(sdp: SessionDescription?) {
                             TODO("Not yet implemented")
@@ -153,7 +160,12 @@ class SignalExchangeObserver(
                         override fun onSetFailure(error: String?) {
                             Log.e(TAG, "onSetFailure: $error")
                         }
-                    }, p0)
+                    },
+                        builder(
+                            p0
+                        ).enableOpusDtx().build()
+                    )
+                }
             }
 
             override fun onSetSuccess() {

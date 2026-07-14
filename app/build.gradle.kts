@@ -58,4 +58,5 @@ dependencies {
     implementation(libs.stream.webrtc.android)
     implementation(libs.permissionx)
     implementation(libs.androidx.appcompat)
+//    implementation(libs.java.webrtc.sdp.parser)
 }
