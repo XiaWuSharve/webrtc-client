@@ -10,14 +10,15 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,6 +26,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.github.xiawusharve.webrtc.ui.theme.Typography
+import com.github.xiawusharve.webrtc.ui.theme.WebrtcTheme
 import com.permissionx.guolindev.PermissionX
 import java.net.URI
 
@@ -47,31 +53,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)  // ✅ 整个 Column 都避开系统栏
-                ) {
-                    MessageList(listOf("hello world", "hello sharve"))
-
-                    var localId by remember { mutableStateOf("") }
-                    LocalIdTextField(localId, {value -> localId = value})
-
-                    var remoteId by remember { mutableStateOf("") }
-                    RemoteIdTextField(remoteId, { value -> remoteId = value })
-
-                    RegisterButton(
-                        onClick = { register(localId) },
-                        modifier = Modifier.wrapContentSize()
-                    )
-                    TestCallAutoAnswer(
-                        onClick = { testCall(remoteId) },
-                        modifier = Modifier.wrapContentSize()  // 或指定大小，如 Modifier.size(100.dp)
-                    )
-                    Spacer(modifier = Modifier.weight(1f))  // 可选：把按钮推到顶部，或者不加也行
-                }
-            }
+            PreviewLayer()
         }
         // 先请求权限，仅在全部授权后初始化 WebRTC
         requestPermissionsAndInit()
@@ -173,70 +155,134 @@ class MainActivity : AppCompatActivity() {
 //        Log.d(TAG, "WebRTC 资源已释放")
 //    }
 
-}
+    @Composable
+    fun RegisterButton(onClick:() -> Unit, modifier: Modifier = Modifier) {
+        Button(
+            onClick = { onClick() },
+            modifier = modifier
+        ) {
+            // TODO 中间态组件
+            Text("保存&重新注册")
+        }
+    }
 
-@Composable
-fun RegisterButton(onClick:() -> Unit, modifier: Modifier = Modifier) {
-    Button(
-        onClick = { onClick() },
-        modifier = modifier
+    @Composable
+    fun TestCallAutoAnswer(onClick:() -> Unit, modifier: Modifier = Modifier) {
+        Button(
+            onClick = { onClick() },
+            modifier = modifier
+        ) {
+            Text("拨号等待回答并发送candidates建立通讯")
+        }
+    }
+
+    // 定义 TextField 组件，同时接收值和回调
+    @Composable
+    fun LocalIdTextField(
+        value: String,
+        onValueChange: (String) -> Unit,
+        modifier: Modifier = Modifier
     ) {
-        Text("注册")
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text("我的ID - 字母与数字组成") },
+            modifier = modifier,
+        )
     }
-}
 
-@Composable
-fun TestCallAutoAnswer(onClick:() -> Unit, modifier: Modifier = Modifier) {
-    Button(
-        onClick = { onClick() },
-        modifier = modifier
+    @Composable
+    fun DisplayName(
+        value: String,
+        onValueChange: (String) -> Unit,
+        modifier: Modifier = Modifier
     ) {
-        Text("拨号等待回答并发送candidates建立通讯")
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = {Text("展示名称")},
+            modifier = modifier
+        )
     }
-}
 
-// 定义 TextField 组件，同时接收值和回调
-@Composable
-fun LocalIdTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text("我的ID - 字母与数字组成") },
-        modifier = modifier
-    )
-}
-
-// 定义 TextField 组件，同时接收值和回调
-@Composable
-fun RemoteIdTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text("对方ID") },
-        modifier = modifier
-    )
-}
-
-@Composable
-fun MessageList(messages: List<String>) {
-    LazyColumn {
-        items(messages) { message -> Message(message)}
+    // 定义 TextField 组件，同时接收值和回调
+    @Composable
+    fun RemoteIdTextField(
+        value: String,
+        onValueChange: (String) -> Unit,
+        modifier: Modifier = Modifier
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text("对方ID") },
+            modifier = modifier
+        )
     }
-}
 
-@Composable
-fun Message(message: String) {
-    Row() {
-        Text("sharve")
-        Text(": ")
-        Text(message)
+    @Composable
+    fun MessageList(messages: List<String>) {
+        Surface() {
+            LazyColumn {
+                items(messages) { message -> Message(message)}
+            }
+        }
+    }
+
+    @Composable
+    fun Message(message: String) {
+        Row() {
+            Text("sharve", color = MaterialTheme.colorScheme.primary)
+            Text(": ", color = MaterialTheme.colorScheme.tertiary)
+            Text(message, color = MaterialTheme.colorScheme.secondary)
+        }
+    }
+
+    @Composable
+    fun ConfigLayer(config: Config, modifier: Modifier = Modifier) {
+        Row(modifier = modifier) {
+            LocalIdTextField(
+                config.localId,
+                {value -> config.localId = value},
+            )
+            Spacer(modifier=Modifier.width(8.dp))
+            RemoteIdTextField(config.remoteId, { value -> config.remoteId = value })
+        }
+        Row(modifier = modifier) {
+            DisplayName(config.displayName, {value -> config.displayName = value})
+        }
+    }
+
+    @Preview
+    @Composable
+    fun PreviewLayer() {
+        var config by remember { mutableStateOf(Config(
+            localId = "my_id",
+            remoteId = "its_id",
+            displayName = "名字"
+        )) }
+        WebrtcTheme() {
+            //        Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
+            Column(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .padding(padding)  // ✅ 整个 Column 都避开系统栏
+            ) {
+                ConfigLayer(config, modifier = Modifier.padding(all=8.dp))
+                RegisterButton(
+                    onClick = { register(config.localId) },
+                    modifier = Modifier.wrapContentSize()
+                )
+//                TestCallAutoAnswer(
+//                    onClick = { testCall(remoteId) },
+//                    modifier = Modifier.wrapContentSize()  // 或指定大小，如 Modifier.size(100.dp)
+//                )
+//                Spacer(modifier = Modifier.weight(1f))  // 可选：把按钮推到顶部，或者不加也行
+                MessageList(
+                    listOf("hello world", "hello sharve"),
+                )
+            }
+//        }
+        }
     }
 }
