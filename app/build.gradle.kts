@@ -29,6 +29,7 @@ android {
         }
     }
     compileOptions {
+//        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -58,5 +59,7 @@ dependencies {
     implementation(libs.stream.webrtc.android)
     implementation(libs.permissionx)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.compose.material.icons.core)
+//    coreLibraryDesugaring(libs.desugar.jdk.libs)
 //    implementation(libs.java.webrtc.sdp.parser)
 }

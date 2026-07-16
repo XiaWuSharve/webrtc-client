@@ -1,4 +1,4 @@
-package com.github.xiawusharve.webrtc
+package com.github.xiawusharve.webrtc.backend
 
 import org.webrtc.AudioTrack
 import org.webrtc.IceCandidate
@@ -7,7 +7,6 @@ import org.webrtc.PeerConnection
 import org.webrtc.RtpTransceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
-import java.util.Collections
 
 class MyPeerConnection(
     private val peerConnection: PeerConnection,

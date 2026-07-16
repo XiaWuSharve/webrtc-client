@@ -3,6 +3,7 @@ agp = "9.2.1"
 #android = "144.7559.08"
 appcompat = "1.7.1"
 coreKtx = "1.10.1"
+desugar_jdk_libs = "2.1.5"
 easypermissions = "3.0.0"
 googleWebrtc = "1.0.32006"
 googleWebrtcVersion = "1.0.45036"
@@ -22,7 +23,9 @@ streamWebrtcAndroidVersion = "1.1.1"
 [libraries]
 #android = { module = "io.github.webrtc-sdk:android", version.ref = "android" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+androidx-compose-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 easypermissions = { module = "pub.devrel:easypermissions", version.ref = "easypermissions" }
 google-webrtc = { module = "org.webrtc:google-webrtc", version.ref = "googleWebrtc" }
 infobip-google-webrtc = { module = "com.infobip:google-webrtc", version.ref = "googleWebrtcVersion" }
