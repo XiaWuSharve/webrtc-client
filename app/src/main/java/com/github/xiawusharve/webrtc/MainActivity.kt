@@ -38,22 +38,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.github.xiawusharve.webrtc.backend.Config
-import com.github.xiawusharve.webrtc.backend.MyPeerConnectionFactoryBuilder
-import com.github.xiawusharve.webrtc.backend.PeerConnectionObserver
-import com.github.xiawusharve.webrtc.backend.SignalExchangeObserver
-import com.github.xiawusharve.webrtc.backend.SignalingClient
+import com.github.xiawusharve.webrtc.backend.RtcClient
+import com.github.xiawusharve.webrtc.backend.RtcClientObserverInterface
 import com.github.xiawusharve.webrtc.ui.theme.WebrtcTheme
 import com.permissionx.guolindev.PermissionX
-import java.net.URI
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var signalExchangeObserver: SignalExchangeObserver
-    private lateinit var signalingClient: SignalingClient
-    private lateinit var myPeerConnectionFactoryBuilder: MyPeerConnectionFactoryBuilder
+    private lateinit var rtcClient: RtcClient
     private val simpleDateFormat = SimpleDateFormat.getDateTimeInstance(
         DateFormat.SHORT, DateFormat.SHORT
     )
@@ -63,7 +58,6 @@ class MainActivity : AppCompatActivity() {
         private const val TURN_URL = "turn:101.37.76.38:3480?transport=udp"
         private const val TURN_USERNAME = "sharve"
         private const val TURN_PASSWORD = "sharve"
-        private const val AUDIO_TRACK_ID = "demoAudioTrackId"
         private const val WS_URL = "ws://101.37.76.38:3001"
     }
 
@@ -140,46 +134,34 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
         }
+                    // init webRTC
+                    this.rtcClient = RtcClient(
+                        WS_URL = WS_URL,
+                        context = this,
+                        TURN_URL = TURN_URL,
+                        TURN_USERNAME = TURN_USERNAME,
+                        TURN_PASSWORD = TURN_PASSWORD
+                    )
+                    this.rtcClient.init(object : RtcClientObserverInterface {
+                        override fun onInitFail(e: Exception) {
+                            Toast.makeText(this@MainActivity, "初始化失败: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+
+                        override fun onInitSuccess() {
+                            Log.i(TAG, "通讯组件初始化成功")
+                        }
+                    })
     }
 
     private fun register(localId: String) {
         Log.i(TAG, "注册用户中")
-
-        signalingClient.register(
-            localId = localId,
-            signalingClientObserver = signalExchangeObserver
-        ) // TODO: 添加连接成功回调
+        rtcClient.register(localId) // TODO: 添加连接成功回调
     }
 
     private fun testCall(remoteId: String) {
         Log.d(TAG, "testing communication...")
-        // TODO 交给rtc client设置
-        signalingClient.setRemoteId(remoteId)
-        signalExchangeObserver.onCall()
+        rtcClient.call(remoteId)
     }
-
-//    override fun onDestroy() {
-//        releaseResources()
-//        super.onDestroy()
-//    }
-//
-//    private fun releaseResources() {
-//        // 关闭 PeerConnection
-//        peerConnection.close()
-//
-//        // 释放音频轨道和源（dispose 后不可再用）
-//        audioTrack.dispose()
-//        audioSource.dispose()
-//
-//        // 释放 Factory
-//        myPeerConnectionFactoryBuilder.dispose()
-//
-//        // 释放音频设备模块（如有单独释放方法，可调用）
-//        audioDeviceModule.release()
-//
-//        Log.d(TAG, "WebRTC 资源已释放")
-//    }
-
     @Composable
     fun SaveAndRegisterButton(onSave:() -> Unit, modifier: Modifier = Modifier) {
         Button(

@@ -36,19 +36,18 @@ class MyPeerConnectionFactoryBuilder(
         PeerConnectionFactory.initialize(initOptions)
     }
 
-    fun createRTCConfiguration(URL: String, username: String, password: String) {
+    fun createRTCConfiguration(URL: String, username: String, password: String, iceCheckIntervalStrongConnectivityMs: Int, iceConnectionReceivingTimeout: Int) {
         val iceServers = listOf(
             PeerConnection.IceServer.builder(URL)
                 .setUsername(username)
                 .setPassword(password)
                 .createIceServer())
         this.rtcConfiguration = PeerConnection.RTCConfiguration(iceServers).apply {
-//            iceTransportsType = PeerConnection.IceTransportsType.RELAY
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
-            // 增加连接检查间隔（默认20ms太频繁），改为 1000ms
-            iceCheckIntervalStrongConnectivityMs = 2000
-//            // 延长接收超时，减少不必要的重传探测
-            iceConnectionReceivingTimeout = 3000
+            // 增加连接检查间隔（默认20ms太频繁），改为 2000
+            this.iceCheckIntervalStrongConnectivityMs = iceCheckIntervalStrongConnectivityMs
+//            // 延长接收超时，减少不必要的重传探测 3000
+            this.iceConnectionReceivingTimeout = iceConnectionReceivingTimeout
         }
     }
 
