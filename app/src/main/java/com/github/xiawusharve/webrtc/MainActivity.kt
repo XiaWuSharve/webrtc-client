@@ -8,6 +8,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Arrangement
@@ -61,7 +62,7 @@ class MainActivity : AppCompatActivity() {
         private const val WS_URL = "ws://101.37.76.38:3001"
     }
 
-    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -72,68 +73,24 @@ class MainActivity : AppCompatActivity() {
         requestPermissionsAndInit()
     }
 
-    fun initWebRTC() {
-        Log.i(TAG, "初始化WebRTC")
-        try {
-            // connect
-            val signalingClient = SignalingClient(URI(WS_URL))
-            signalingClient.connect()
-            // webrtc
-            val myPeerConnectionFactoryBuilder = MyPeerConnectionFactoryBuilder(this)
-            myPeerConnectionFactoryBuilder.createRTCConfiguration(
-                URL = TURN_URL,
-                username = TURN_USERNAME,
-                password = TURN_PASSWORD
-            )
-            myPeerConnectionFactoryBuilder.initializeFactory(true)
-            myPeerConnectionFactoryBuilder.createAudioDeviceModule()
-            myPeerConnectionFactoryBuilder.createPeerConnectionFactory()
-            myPeerConnectionFactoryBuilder.createAudioTrack(AUDIO_TRACK_ID)
-            Log.i(TAG, "WebRTC 初始化成功")
-            val signalExchangeObserver = SignalExchangeObserver(
-                myPeerConnectionFactoryBuilder,
-                PeerConnectionObserver(),
-            )
-            this.myPeerConnectionFactoryBuilder = myPeerConnectionFactoryBuilder
-            this.signalingClient = signalingClient
-            this.signalExchangeObserver = signalExchangeObserver
-        } catch (e: Exception) {
-            Log.e(TAG, "WebRTC 初始化失败", e)
-            Toast.makeText(this, "初始化失败: ${e.message}", Toast.LENGTH_LONG).show()
-            // 清理已分配的资源
-//            releaseResources()
-        }
-    }
-
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private fun requestPermissionsAndInit() {
         Log.i(TAG, "正在获取权限")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            PermissionX.init(this)
-                .permissions(
-                    Manifest.permission.RECORD_AUDIO,
-                    Manifest.permission.INTERNET,
-                    Manifest.permission.MODIFY_AUDIO_SETTINGS,
-                    Manifest.permission.ACCESS_NETWORK_STATE,
-                    Manifest.permission.POST_NOTIFICATIONS
-                )
-                .request { allGranted, _, deniedList ->
-                    if (allGranted) {
-                        Log.i(TAG, "所有权限已授予")
-                        Toast.makeText(this, "所有权限已授予", Toast.LENGTH_SHORT).show()
-                        initWebRTC()
-                        val notification = Notification(this)
-                        notification.createNotificationChannel("0", "电话通道", NotificationManager.IMPORTANCE_HIGH)
-                        notification.setContentIntent("hello notification")
-                    } else {
-                        Log.e(TAG, "acquire permission failed: $deniedList")
-                        Toast.makeText(
-                            this,
-                            "以下权限被拒绝: $deniedList",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                }
-        }
+        PermissionX.init(this)
+            .permissions(
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.INTERNET,
+                Manifest.permission.MODIFY_AUDIO_SETTINGS,
+                Manifest.permission.ACCESS_NETWORK_STATE,
+                Manifest.permission.POST_NOTIFICATIONS,
+                Manifest.permission.FOREGROUND_SERVICE,
+                Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK,
+                Manifest.permission.FOREGROUND_SERVICE_MICROPHONE,
+            )
+            .request { allGranted, _, deniedList ->
+                if (allGranted) {
+                    Log.i(TAG, "所有权限已授予")
+                    Toast.makeText(this, "所有权限已授予", Toast.LENGTH_SHORT).show()
                     // init webRTC
                     this.rtcClient = RtcClient(
                         WS_URL = WS_URL,
@@ -151,6 +108,21 @@ class MainActivity : AppCompatActivity() {
                             Log.i(TAG, "通讯组件初始化成功")
                         }
                     })
+                    val myNotification = MyNotification(this)
+                    myNotification.createNotificationChannel("0", "电话通道", NotificationManager.IMPORTANCE_HIGH)
+                    val notification =
+                        myNotification.createNotification("hello notification", "收到一条消息")
+                    myNotification.nofity(notification)
+                    startForegroundService(this)
+                } else {
+                    Log.e(TAG, "acquire permission failed: $deniedList")
+                    Toast.makeText(
+                        this,
+                        "以下权限被拒绝: $deniedList",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
     }
 
     private fun register(localId: String) {
