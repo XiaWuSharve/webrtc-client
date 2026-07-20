@@ -27,7 +27,7 @@
         </DialogSelection>
       </SelectionState>
       <SelectionState runConfigName="PreviewLayer">
-        <option name="selectionMode" value="DIALOG" />
+        <option name="selectionMode" value="DROPDOWN" />
         <DropdownSelection timestamp="2026-07-09T11:24:58.134252800Z">
           <Target type="DEFAULT_BOOT">
             <handle>

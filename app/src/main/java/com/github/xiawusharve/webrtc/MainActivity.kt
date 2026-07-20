@@ -59,7 +59,7 @@ class MainActivity : AppCompatActivity() {
         private const val TURN_URL = "turn:101.37.76.38:3480?transport=udp"
         private const val TURN_USERNAME = "sharve"
         private const val TURN_PASSWORD = "sharve"
-        private const val WS_URL = "ws://101.37.76.38:3001"
+        private const val WS_URL = "ws://192.168.239.33:3001/ws"
     }
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
