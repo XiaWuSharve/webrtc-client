@@ -11,8 +11,7 @@ import android.os.Build
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
-import com.github.xiawusharve.webrtc.backend.RtcClient
+import com.github.xiawusharve.webrtc.backend.audio.RtcClient
 
 class MyNotification(private val context: Context) {
     private lateinit var notificationManager: NotificationManagerCompat

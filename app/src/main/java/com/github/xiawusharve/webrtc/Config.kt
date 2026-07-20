@@ -1,4 +1,4 @@
-package com.github.xiawusharve.webrtc.backend
+package com.github.xiawusharve.webrtc
 
 data class Config(
     var localId: String,

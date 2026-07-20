@@ -1,4 +1,4 @@
-package com.github.xiawusharve.webrtc.backend
+package com.github.xiawusharve.webrtc.backend.message
 
 import android.util.Log
 import org.java_websocket.client.WebSocketClient

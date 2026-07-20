@@ -36,6 +36,15 @@ android {
     buildFeatures {
         compose = true
     }
+    packaging {
+        resources {
+            excludes += "META-INF/INDEX.LIST"                 // 已有的
+            pickFirsts += "META-INF/io.netty.versions.properties"
+            // 以下两行是预防性的，避免将来再报 native-image 相关文件的冲突
+            pickFirsts += "META-INF/native-image/**"
+            pickFirsts += "META-INF/services/**"
+        }
+    }
 }
 
 dependencies {
@@ -55,11 +64,10 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.java.websocket)
-//    implementation(libs.android)
     implementation(libs.stream.webrtc.android)
     implementation(libs.permissionx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.compose.material.icons.core)
-//    coreLibraryDesugaring(libs.desugar.jdk.libs)
-//    implementation(libs.java.webrtc.sdp.parser)
+    // Source: https://mvnrepository.com/artifact/com.github.l42111996/kcp-base
+    implementation(libs.kcp.base)
 }

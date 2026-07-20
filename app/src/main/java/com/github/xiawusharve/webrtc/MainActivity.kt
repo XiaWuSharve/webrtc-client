@@ -9,8 +9,9 @@ import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
-import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
@@ -29,6 +31,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,9 +42,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.github.xiawusharve.webrtc.backend.Config
-import com.github.xiawusharve.webrtc.backend.RtcClient
-import com.github.xiawusharve.webrtc.backend.RtcClientObserverInterface
+import com.github.xiawusharve.webrtc.backend.audio.RtcClient
+import com.github.xiawusharve.webrtc.backend.audio.RtcClientObserverInterface
+import com.github.xiawusharve.webrtc.backend.message.MessageType
 import com.github.xiawusharve.webrtc.ui.theme.WebrtcTheme
 import com.permissionx.guolindev.PermissionX
 import java.text.DateFormat
@@ -59,7 +63,7 @@ class MainActivity : AppCompatActivity() {
         private const val TURN_URL = "turn:101.37.76.38:3480?transport=udp"
         private const val TURN_USERNAME = "sharve"
         private const val TURN_PASSWORD = "sharve"
-        private const val WS_URL = "ws://192.168.239.33:3001/ws"
+        private const val WS_URL = "ws://192.168.239.36:3001/ws"
     }
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
@@ -106,6 +110,10 @@ class MainActivity : AppCompatActivity() {
 
                         override fun onInitSuccess() {
                             Log.i(TAG, "通讯组件初始化成功")
+                        }
+
+                        override fun onReceiveMessage() {
+                            TODO("Not yet implemented")
                         }
                     })
                     val myNotification = MyNotification(this)
@@ -167,23 +175,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun MessageList(messages: List<String>) {
+    fun MessageList(messages: List<MessageEntityPreview>) {
         Surface() {
             LazyColumn() {
-                items(messages) { message -> MessageCard("sharve", Date(), message)}
+                items(messages) { message -> MessageCard(message)}
             }
         }
     }
 
     @Composable
-    fun MessageCard(name: String, time: Date, message: String) {
+    fun MessageCard(message: MessageEntityPreview) {
         Column(modifier = Modifier.padding(all = 8.dp)) {
             Row {
-                Text(name, color = MaterialTheme.colorScheme.primary)
+                Text(message.displayName, color = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(simpleDateFormat.format(time), color = MaterialTheme.colorScheme.tertiary)
+                Text(simpleDateFormat.format(message.time), color = MaterialTheme.colorScheme.tertiary)
             }
-            Text(message, color = MaterialTheme.colorScheme.secondary)
+            val interactionSource = remember { MutableInteractionSource() }
+            LazyRow(verticalAlignment = Alignment.CenterVertically) {
+                items(message.messageChain) { unit ->
+                    when(unit.type) {
+                        MessageType.TEXT -> unit.text?.let { Text(it, color = MaterialTheme.colorScheme.secondary) }
+                        MessageType.CALL -> Text("/call",
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable(interactionSource, indication = ripple()){})
+                        MessageType.ANSWER -> Text("/answer",
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable(interactionSource, indication = ripple()){})
+                        MessageType.ESTABLISH -> Text("/establish", color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
         }
     }
 
@@ -315,11 +337,43 @@ class MainActivity : AppCompatActivity() {
 //                    modifier = Modifier.wrapContentSize()  // 或指定大小，如 Modifier.size(100.dp)
 //                )
 //                Spacer(modifier = Modifier.weight(1f))  // 可选：把按钮推到顶部，或者不加也行
-                MessageList(
-                    listOf("hello world", "hello sharve"),
-                )
+//                MessageList(
+//                    listOf("hello world", "hello sharve"),
+//                )
             }
 //        }
         }
+    }
+
+    @Preview
+    @Composable
+    fun PreviewMessageList() {
+        MessageList(listOf(
+            MessageEntityPreview(
+                displayName = "夏午",
+                time = Date(),
+                messageChain = listOf(
+                    MessageUnitPreview(MessageType.TEXT, "测试文本"),
+                    MessageUnitPreview(MessageType.CALL),
+                )
+            ),
+            MessageEntityPreview(
+                displayName = "康米",
+                time = Date(),
+                messageChain = listOf(
+                    MessageUnitPreview(MessageType.TEXT, "回答电话"),
+                    MessageUnitPreview(MessageType.ANSWER),
+                )
+            ),
+            MessageEntityPreview(
+                displayName = "夏午",
+                time = Date(),
+                messageChain = listOf(
+                    MessageUnitPreview(MessageType.TEXT, "建立通话"),
+                    MessageUnitPreview(MessageType.ESTABLISH),
+                    MessageUnitPreview(MessageType.TEXT, "可添加额外文本"),
+                )
+            ),
+        ))
     }
 }
