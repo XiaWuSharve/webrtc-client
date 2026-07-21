@@ -31,7 +31,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,7 +43,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.github.xiawusharve.webrtc.backend.audio.RtcClient
 import com.github.xiawusharve.webrtc.backend.audio.RtcClientObserverInterface
-import com.github.xiawusharve.webrtc.backend.message.MessageType
+import com.github.xiawusharve.webrtc.backend.message.dto.MessageType
+import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnit
 import com.github.xiawusharve.webrtc.ui.theme.WebrtcTheme
 import com.permissionx.guolindev.PermissionX
 import java.text.DateFormat
@@ -186,7 +186,7 @@ class MainActivity : AppCompatActivity() {
     @Composable
     fun MessageCard(message: MessageEntityPreview) {
         Column(modifier = Modifier.padding(all = 8.dp)) {
-            Row {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(message.displayName, color = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(simpleDateFormat.format(message.time), color = MaterialTheme.colorScheme.tertiary)
@@ -291,7 +291,7 @@ class MainActivity : AppCompatActivity() {
 
     @Preview
     @Composable
-    fun PreviewLayer() {
+    fun PreviewLayer(observer: ) {
         var config by remember {
             mutableStateOf(
                 Config(
@@ -303,6 +303,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         var mode by remember { mutableStateOf(Mode.PREVIEW) }
+
+        var messageList by remember {
+            mutableStateOf(listOf<MessageEntityPreview>())
+        }
 
         WebrtcTheme() {
             //        Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
@@ -337,9 +341,7 @@ class MainActivity : AppCompatActivity() {
 //                    modifier = Modifier.wrapContentSize()  // 或指定大小，如 Modifier.size(100.dp)
 //                )
 //                Spacer(modifier = Modifier.weight(1f))  // 可选：把按钮推到顶部，或者不加也行
-//                MessageList(
-//                    listOf("hello world", "hello sharve"),
-//                )
+                MessageList(messageList)
             }
 //        }
         }
@@ -353,25 +355,25 @@ class MainActivity : AppCompatActivity() {
                 displayName = "夏午",
                 time = Date(),
                 messageChain = listOf(
-                    MessageUnitPreview(MessageType.TEXT, "测试文本"),
-                    MessageUnitPreview(MessageType.CALL),
+                    MessageUnit(MessageType.TEXT, "测试文本"),
+                    MessageUnit(MessageType.CALL),
                 )
             ),
             MessageEntityPreview(
                 displayName = "康米",
                 time = Date(),
                 messageChain = listOf(
-                    MessageUnitPreview(MessageType.TEXT, "回答电话"),
-                    MessageUnitPreview(MessageType.ANSWER),
+                    MessageUnit(MessageType.TEXT, "回答电话"),
+                    MessageUnit(MessageType.ANSWER),
                 )
             ),
             MessageEntityPreview(
                 displayName = "夏午",
                 time = Date(),
                 messageChain = listOf(
-                    MessageUnitPreview(MessageType.TEXT, "建立通话"),
-                    MessageUnitPreview(MessageType.ESTABLISH),
-                    MessageUnitPreview(MessageType.TEXT, "可添加额外文本"),
+                    MessageUnit(MessageType.TEXT, "建立通话"),
+                    MessageUnit(MessageType.ESTABLISH),
+                    MessageUnit(MessageType.TEXT, "可添加额外文本"),
                 )
             ),
         ))

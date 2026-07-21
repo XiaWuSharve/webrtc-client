@@ -75,7 +75,7 @@ open class SignalingClient(
         Log.i(TAG, "onError ex=$ex")
     }
 
-    fun register(localId: String, signalingClientObserver: SignalExchangeObserver) {
+    fun register(localId: String, signalingClientObserver: SignalExchangeObserverImpl) {
         Log.d(TAG, "registering user")
         this.localId = localId
         signalingClientObserver.setSignalingClient(this)

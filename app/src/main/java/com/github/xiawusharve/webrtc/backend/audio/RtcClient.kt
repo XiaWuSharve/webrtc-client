@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import com.github.xiawusharve.webrtc.backend.message.SignalExchangeObserver
+import com.github.xiawusharve.webrtc.backend.message.SignalExchangeObserverImpl
 import com.github.xiawusharve.webrtc.backend.message.SignalingClient
 import java.net.URI
 
@@ -18,7 +18,7 @@ class RtcClient(
 ): BroadcastReceiver() {
 
     private lateinit var signalingClient: SignalingClient
-    private lateinit var signalExchangeObserver: SignalExchangeObserver
+    private lateinit var signalExchangeObserver: SignalExchangeObserverImpl
     private lateinit var myPeerConnectionFactoryBuilder: MyPeerConnectionFactoryBuilder
 
     companion object {
@@ -56,7 +56,7 @@ class RtcClient(
             myPeerConnectionFactoryBuilder.createPeerConnectionFactory()
             myPeerConnectionFactoryBuilder.createAudioTrack(AUDIO_TRACK_ID)
             Log.i(TAG, "WebRTC 初始化成功")
-            val signalExchangeObserver = SignalExchangeObserver(
+            val signalExchangeObserver = SignalExchangeObserverImpl(
                 myPeerConnectionFactoryBuilder,
                 PeerConnectionObserver(),
             )

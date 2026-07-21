@@ -13,6 +13,7 @@ junit = "4.13.2"
 junitVersion = "1.1.5"
 espressoCore = "3.5.1"
 kcpBase = "1.6.2"
+kotlinxSerializationJson = "1.11.0"
 lifecycleRuntimeKtx = "2.6.1"
 activityCompose = "1.8.0"
 kotlin = "2.2.10"
@@ -46,6 +47,7 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 kcp-base = { module = "com.github.l42111996:kcp-base", version.ref = "kcpBase" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 permissionx = { module = "com.guolindev.permissionx:permissionx", version.ref = "permissionx" }
 stream-webrtc-android = { module = "io.getstream:stream-webrtc-android", version.ref = "streamWebrtcAndroid" }
 stream-webrtc-android-v111 = { module = "io.getstream:stream-webrtc-android", version.ref = "streamWebrtcAndroidVersion" }
