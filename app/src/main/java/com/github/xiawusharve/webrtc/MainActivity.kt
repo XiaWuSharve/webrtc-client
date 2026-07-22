@@ -58,6 +58,7 @@ import java.net.URI
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.stream.Collectors
 
 class MainActivity : AppCompatActivity() {
 
@@ -74,7 +75,7 @@ class MainActivity : AppCompatActivity() {
         private const val TURN_URL = "turn:101.37.76.38:3480?transport=udp"
         private const val TURN_USERNAME = "sharve"
         private const val TURN_PASSWORD = "sharve"
-        private const val WS_URL = "ws://192.168.239.36:3001/ws"
+        private const val WS_URL = "ws://192.168.251.148:3001/ws"
         private const val iceCheckIntervalStrongConnectivityMs = 2000
         private const val iceConnectionReceivingTimeout = 3000
         private const val AUDIO_TRACK_ID = "demoAudioTrackId"
@@ -88,6 +89,8 @@ class MainActivity : AppCompatActivity() {
             PreviewLayer()
         }
         requestPermissions()
+        initCommunicationComponents()
+        testNotification()
     }
 
     private fun initCommunicationComponents() {
@@ -150,8 +153,6 @@ class MainActivity : AppCompatActivity() {
             .request { allGranted, _, deniedList ->
                 if (allGranted) {
                     Log.i(TAG, "所有权限已授予")
-                    initCommunicationComponents()
-                    testNotification()
                     Toast.makeText(this, "所有权限已授予", Toast.LENGTH_SHORT).show()
                 } else {
                     Log.e(TAG, "acquire permission failed: $deniedList")
@@ -182,19 +183,27 @@ class MainActivity : AppCompatActivity() {
     private fun send(text: String): Boolean {
         Log.i(TAG, "sending $text")
         // abc/calldef/answerghi/establishjkl -> abc /call def /answer ghi /establish jkl
+        // TODO 检查空字符串格式问题
         val result = text.split(Regex("(?=/call|/answer|/establish)|(?<=/call|/answer|/establish)"))
-        val messageChain = result.stream().map { s ->
+        val messageChain = result.stream().map { s -> MessageUnit(
             when(s) {
-                "/call" -> {
-                    signalExchangeObserver.onCall()
-                    MessageUnitType.CALL
-                }
+                "/call" -> MessageUnitType.CALL
                 "/answer" -> MessageUnitType.ANSWER
                 "/establish" -> MessageUnitType.ESTABLISH
                 else -> MessageUnitType.TEXT
-            }MessageUnit(, s)
-        }.toList()
-        signalingClient.sendChatMessage(messageChain)
+            }, s)
+        }.collect(Collectors.toList())
+        val p = messageChain.stream().filter { m ->
+            m.type == MessageUnitType.CALL
+            || m.type == MessageUnitType.ANSWER
+            || m.type == MessageUnitType.ESTABLISH
+        }.findFirst().orElse(null)
+        when(p.type) {
+            MessageUnitType.CALL -> signalExchangeObserver.onCall(messageChain, p)
+            MessageUnitType.ANSWER -> signalExchangeObserver.onAnswer(messageChain, p)
+            MessageUnitType.ESTABLISH -> signalExchangeObserver.onEstablish(messageChain, p)
+            else -> signalingClient.sendChatMessage(messageChain)
+        }
         // TODO 肯定不能永远true
         return true
     }

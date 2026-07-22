@@ -14,5 +14,5 @@ enum class MessageUnitType {
 @Serializable
 data class MessageUnit(
     val type: MessageUnitType,
-    val message: String? = null,
+    var message: String? = null,
 )

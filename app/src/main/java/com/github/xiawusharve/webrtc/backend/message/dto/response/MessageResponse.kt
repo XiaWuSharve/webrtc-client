@@ -18,7 +18,7 @@ data class CandidateMessageResponse(
 
 @Serializable
 data class CandidateData(
-    @SerialName("sessionId") val remoteId: String,
+    val remoteId: String,
     val sdpMid: String,
     val sdpMLineIndex: Int,
     val sdp: String,

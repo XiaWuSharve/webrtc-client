@@ -5,6 +5,7 @@ import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnection
 import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnectionFactoryBuilder
 import com.github.xiawusharve.webrtc.backend.audio.PeerConnectionObserverImpl
 import com.github.xiawusharve.webrtc.backend.audio.builder
+import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnit
 import org.webrtc.IceCandidate
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
@@ -98,8 +99,11 @@ class SignalExchangeObserverImpl(
         Log.d(TAG, "onReceiveEstablish")
     }
 
-    override fun onCall() {
+    override fun onCall(messageChain: List<MessageUnit>, p: MessageUnit) {
         Log.d(TAG, "onCall")
+        this.peerConnection = peerConnectionFactoryBuilder.createMyPeerConnection(
+            PeerConnectionObserverImpl(this)
+        )
         // TODO sdp builder and 立体声 采样率 VGA等
         peerConnection.createOffer(object : SdpObserver {
             override fun onCreateSuccess(p0: SessionDescription?) {
@@ -110,7 +114,8 @@ class SignalExchangeObserverImpl(
                         }
 
                         override fun onSetSuccess() {
-                            TODO("Not yet implemented")
+                            p.message = p0.description
+                            signalingClient.sendChatMessage(messageChain)
                         }
 
                         override fun onCreateFailure(error: String?) {
@@ -142,7 +147,7 @@ class SignalExchangeObserverImpl(
         })
     }
 
-    override fun onAnswer() {
+    override fun onAnswer(messageChain: List<MessageUnit>, p: MessageUnit) {
         peerConnection.createAnswer(object : SdpObserver {
             override fun onCreateSuccess(p0: SessionDescription?) {
                 if (p0 != null) {
@@ -152,6 +157,8 @@ class SignalExchangeObserverImpl(
                         }
 
                         override fun onSetSuccess() {
+                            p.message = p0.description
+                            signalingClient.sendChatMessage(messageChain)
                             candidateReady = true
                             for (c in candidates) {
                                 Log.d(TAG, "cached candidate: ${c.sdp}")
@@ -186,5 +193,9 @@ class SignalExchangeObserverImpl(
                 TODO("Not yet implemented")
             }
         })
+    }
+
+    override fun onEstablish(messageChain: List<MessageUnit>, p: MessageUnit) {
+        signalingClient.sendChatMessage(messageChain)
     }
 }
