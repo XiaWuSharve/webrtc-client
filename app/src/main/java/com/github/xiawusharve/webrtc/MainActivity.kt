@@ -24,16 +24,21 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,29 +46,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.github.xiawusharve.webrtc.backend.audio.RtcClient
-import com.github.xiawusharve.webrtc.backend.audio.RtcClientObserverInterface
-import com.github.xiawusharve.webrtc.backend.message.dto.MessageType
+import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnectionFactoryBuilder
+import com.github.xiawusharve.webrtc.backend.message.MessageObserverImpl
+import com.github.xiawusharve.webrtc.backend.message.SignalExchangeObserverImpl
+import com.github.xiawusharve.webrtc.backend.message.SignalingClient
 import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnit
+import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnitType
 import com.github.xiawusharve.webrtc.ui.theme.WebrtcTheme
 import com.permissionx.guolindev.PermissionX
+import java.net.URI
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var rtcClient: RtcClient
+    private lateinit var signalExchangeObserver: SignalExchangeObserverImpl
+    private val messageList = mutableStateListOf<MessagePreview>()
+    private lateinit var signalingClient: SignalingClient
     private val simpleDateFormat = SimpleDateFormat.getDateTimeInstance(
         DateFormat.SHORT, DateFormat.SHORT
     )
 
+    // TODO config file
     companion object {
         private const val TAG = "MainActivity"
         private const val TURN_URL = "turn:101.37.76.38:3480?transport=udp"
         private const val TURN_USERNAME = "sharve"
         private const val TURN_PASSWORD = "sharve"
         private const val WS_URL = "ws://192.168.239.36:3001/ws"
+        private const val iceCheckIntervalStrongConnectivityMs = 2000
+        private const val iceConnectionReceivingTimeout = 3000
+        private const val AUDIO_TRACK_ID = "demoAudioTrackId"
     }
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
@@ -73,12 +87,54 @@ class MainActivity : AppCompatActivity() {
         setContent {
             PreviewLayer()
         }
-        // 先请求权限，仅在全部授权后初始化 WebRTC
-        requestPermissionsAndInit()
+        requestPermissions()
+    }
+
+    private fun initCommunicationComponents() {
+
+        // init webRTC
+//        this.rtcClient = RtcClient(
+//            WS_URL = WS_URL,
+//            context = this,
+//            TURN_URL = TURN_URL,
+//            TURN_USERNAME = TURN_USERNAME,
+//            TURN_PASSWORD = TURN_PASSWORD
+//        )
+//        this.rtcClient.init(object : RtcClientObserver {
+//            override fun onInitFail(e: Exception) {
+//                Toast.makeText(this@MainActivity, "初始化失败: ${e.message}", Toast.LENGTH_LONG).show()
+//            }
+//
+//            override fun onInitSuccess() {
+//                Log.i(TAG, "通讯组件初始化成功")
+//            }
+//        })
+        Log.i(TAG, "初始化通讯组件")
+        // connect
+        val signalingClient = SignalingClient(URI(WS_URL))
+        // webrtc
+        val myPeerConnectionFactoryBuilder = MyPeerConnectionFactoryBuilder(this)
+        myPeerConnectionFactoryBuilder.createRTCConfiguration(
+            URL = TURN_URL,
+            username = TURN_USERNAME,
+            password = TURN_PASSWORD,
+            iceCheckIntervalStrongConnectivityMs,
+            iceConnectionReceivingTimeout
+        )
+        myPeerConnectionFactoryBuilder.initializeFactory(true)
+        myPeerConnectionFactoryBuilder.createAudioDeviceModule()
+        myPeerConnectionFactoryBuilder.createPeerConnectionFactory()
+        myPeerConnectionFactoryBuilder.createAudioTrack(AUDIO_TRACK_ID)
+        val signalExchangeObserver =
+            SignalExchangeObserverImpl(myPeerConnectionFactoryBuilder, signalingClient)
+        signalingClient.connect(MessageObserverImpl(this, messageList, signalExchangeObserver))
+        Log.i(TAG, "初始化通讯组件成功")
+        this.signalingClient = signalingClient
+        this.signalExchangeObserver = signalExchangeObserver
     }
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun requestPermissionsAndInit() {
+    private fun requestPermissions() {
         Log.i(TAG, "正在获取权限")
         PermissionX.init(this)
             .permissions(
@@ -94,34 +150,9 @@ class MainActivity : AppCompatActivity() {
             .request { allGranted, _, deniedList ->
                 if (allGranted) {
                     Log.i(TAG, "所有权限已授予")
+                    initCommunicationComponents()
+                    testNotification()
                     Toast.makeText(this, "所有权限已授予", Toast.LENGTH_SHORT).show()
-                    // init webRTC
-                    this.rtcClient = RtcClient(
-                        WS_URL = WS_URL,
-                        context = this,
-                        TURN_URL = TURN_URL,
-                        TURN_USERNAME = TURN_USERNAME,
-                        TURN_PASSWORD = TURN_PASSWORD
-                    )
-                    this.rtcClient.init(object : RtcClientObserverInterface {
-                        override fun onInitFail(e: Exception) {
-                            Toast.makeText(this@MainActivity, "初始化失败: ${e.message}", Toast.LENGTH_LONG).show()
-                        }
-
-                        override fun onInitSuccess() {
-                            Log.i(TAG, "通讯组件初始化成功")
-                        }
-
-                        override fun onReceiveMessage() {
-                            TODO("Not yet implemented")
-                        }
-                    })
-                    val myNotification = MyNotification(this)
-                    myNotification.createNotificationChannel("0", "电话通道", NotificationManager.IMPORTANCE_HIGH)
-                    val notification =
-                        myNotification.createNotification("hello notification", "收到一条消息")
-                    myNotification.nofity(notification)
-                    startForegroundService(this)
                 } else {
                     Log.e(TAG, "acquire permission failed: $deniedList")
                     Toast.makeText(
@@ -133,15 +164,41 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
-    private fun register(localId: String) {
-        Log.i(TAG, "注册用户中")
-        rtcClient.register(localId) // TODO: 添加连接成功回调
+    private fun testNotification() {
+        val myNotification = MyNotification(this)
+        myNotification.createNotificationChannel("0", "电话通道", NotificationManager.IMPORTANCE_HIGH)
+        val notification =
+            myNotification.createNotification("hello notification", "收到一条消息")
+        myNotification.nofity(notification)
+        startForegroundService(this)
     }
 
-    private fun testCall(remoteId: String) {
-        Log.d(TAG, "testing communication...")
-        rtcClient.call(remoteId)
+    private fun register(localId: String, remoteId: String, displayName: String) {
+        Log.i(TAG, "注册用户中")
+        signalingClient.register(localId, remoteId, displayName) // TODO: 添加连接成功回调
     }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private fun send(text: String): Boolean {
+        Log.i(TAG, "sending $text")
+        // abc/calldef/answerghi/establishjkl -> abc /call def /answer ghi /establish jkl
+        val result = text.split(Regex("(?=/call|/answer|/establish)|(?<=/call|/answer|/establish)"))
+        val messageChain = result.stream().map { s ->
+            when(s) {
+                "/call" -> {
+                    signalExchangeObserver.onCall()
+                    MessageUnitType.CALL
+                }
+                "/answer" -> MessageUnitType.ANSWER
+                "/establish" -> MessageUnitType.ESTABLISH
+                else -> MessageUnitType.TEXT
+            }MessageUnit(, s)
+        }.toList()
+        signalingClient.sendChatMessage(messageChain)
+        // TODO 肯定不能永远true
+        return true
+    }
+
     @Composable
     fun SaveAndRegisterButton(onSave:() -> Unit, modifier: Modifier = Modifier) {
         Button(
@@ -151,16 +208,6 @@ class MainActivity : AppCompatActivity() {
         ) {
             // TODO 中间态组件
             Text("保存&重新注册")
-        }
-    }
-
-    @Composable
-    fun TestCallAutoAnswer(onClick:() -> Unit, modifier: Modifier = Modifier) {
-        Button(
-            onClick = { onClick() },
-            modifier = modifier
-        ) {
-            Text("拨号等待回答并发送candidates建立通讯")
         }
     }
 
@@ -175,7 +222,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun MessageList(messages: List<MessageEntityPreview>) {
+    fun MessageList(messages: List<MessagePreview>) {
         Surface() {
             LazyColumn() {
                 items(messages) { message -> MessageCard(message)}
@@ -184,7 +231,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun MessageCard(message: MessageEntityPreview) {
+    fun MessageCard(message: MessagePreview) {
         Column(modifier = Modifier.padding(all = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(message.displayName, color = MaterialTheme.colorScheme.primary)
@@ -195,14 +242,14 @@ class MainActivity : AppCompatActivity() {
             LazyRow(verticalAlignment = Alignment.CenterVertically) {
                 items(message.messageChain) { unit ->
                     when(unit.type) {
-                        MessageType.TEXT -> unit.text?.let { Text(it, color = MaterialTheme.colorScheme.secondary) }
-                        MessageType.CALL -> Text("/call",
+                        MessageUnitType.TEXT -> unit.message?.let { Text(it, color = MaterialTheme.colorScheme.secondary) }
+                        MessageUnitType.CALL -> Text("/call",
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable(interactionSource, indication = ripple()){})
-                        MessageType.ANSWER -> Text("/answer",
+                        MessageUnitType.ANSWER -> Text("/answer",
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable(interactionSource, indication = ripple()){})
-                        MessageType.ESTABLISH -> Text("/establish", color = MaterialTheme.colorScheme.primary)
+                        MessageUnitType.ESTABLISH -> Text("/establish", color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -289,9 +336,10 @@ class MainActivity : AppCompatActivity() {
         IconButton(onClick) { Icon(Icons.Filled.Edit, contentDescription = "编辑") }
     }
 
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @Preview
     @Composable
-    fun PreviewLayer(observer: ) {
+    fun PreviewLayer() {
         var config by remember {
             mutableStateOf(
                 Config(
@@ -301,49 +349,45 @@ class MainActivity : AppCompatActivity() {
                 )
             )
         }
-
         var mode by remember { mutableStateOf(Mode.PREVIEW) }
-
-        var messageList by remember {
-            mutableStateOf(listOf<MessageEntityPreview>())
-        }
+        var editMessage by remember { mutableStateOf("") }
 
         WebrtcTheme() {
-            //        Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(all = 8.dp)
-            ) {
-                ConfigLayer(
-                    config = config,
-                    onLocalIdChange = { newLocalId ->
-                        config = config.copy(localId = newLocalId)
-                    },
-                    onRemoteIdChange = { newRemoteId ->
-                        config = config.copy(remoteId = newRemoteId)
-                    },
-                    onDisplayNameChange = { newDisplayName ->
-                        config = config.copy(displayName = newDisplayName)
-                    },
-                    mode = mode,
-                    onSave = { mode = Mode.PREVIEW },
-                    onEdit = { mode = Mode.EDIT },
-                )
-
-//                SaveAndRegisterButton(
-//                    onSave = { register(config.localId) },
-//                    modifier = Modifier.fillMaxWidth()
-////                    modifier = Modifier.wrapContentSize()
-//                )
-//                TestCallAutoAnswer(
-//                    onClick = { testCall(remoteId) },
-//                    modifier = Modifier.wrapContentSize()  // 或指定大小，如 Modifier.size(100.dp)
-//                )
-//                Spacer(modifier = Modifier.weight(1f))  // 可选：把按钮推到顶部，或者不加也行
-                MessageList(messageList)
+            Scaffold(
+                bottomBar = {
+                    SendLayer(
+                        onClick = { send(editMessage) },
+                        value = editMessage,
+                        onValueChange = { v -> editMessage = v}
+                    )
+                }
+            ) { innerPadding ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(innerPadding)
+                ) {
+                    ConfigLayer(
+                        config = config,
+                        onLocalIdChange = { newLocalId ->
+                            config = config.copy(localId = newLocalId)
+                        },
+                        onRemoteIdChange = { newRemoteId ->
+                            config = config.copy(remoteId = newRemoteId)
+                        },
+                        onDisplayNameChange = { newDisplayName ->
+                            config = config.copy(displayName = newDisplayName)
+                        },
+                        mode = mode,
+                        onSave = {
+                            register(localId = config.localId, remoteId = config.remoteId, displayName = config.displayName)
+                            mode = Mode.PREVIEW
+                        },
+                        onEdit = { mode = Mode.EDIT },
+                    )
+                    MessageList(messageList)
+                }
             }
-//        }
         }
     }
 
@@ -351,31 +395,45 @@ class MainActivity : AppCompatActivity() {
     @Composable
     fun PreviewMessageList() {
         MessageList(listOf(
-            MessageEntityPreview(
+            MessagePreview(
                 displayName = "夏午",
                 time = Date(),
                 messageChain = listOf(
-                    MessageUnit(MessageType.TEXT, "测试文本"),
-                    MessageUnit(MessageType.CALL),
+                    MessageUnit(MessageUnitType.TEXT, "测试文本"),
+                    MessageUnit(MessageUnitType.CALL),
                 )
             ),
-            MessageEntityPreview(
+            MessagePreview(
                 displayName = "康米",
                 time = Date(),
                 messageChain = listOf(
-                    MessageUnit(MessageType.TEXT, "回答电话"),
-                    MessageUnit(MessageType.ANSWER),
+                    MessageUnit(MessageUnitType.TEXT, "回答电话"),
+                    MessageUnit(MessageUnitType.ANSWER),
                 )
             ),
-            MessageEntityPreview(
+            MessagePreview(
                 displayName = "夏午",
                 time = Date(),
                 messageChain = listOf(
-                    MessageUnit(MessageType.TEXT, "建立通话"),
-                    MessageUnit(MessageType.ESTABLISH),
-                    MessageUnit(MessageType.TEXT, "可添加额外文本"),
+                    MessageUnit(MessageUnitType.TEXT, "建立通话"),
+                    MessageUnit(MessageUnitType.ESTABLISH),
+                    MessageUnit(MessageUnitType.TEXT, "可添加额外文本"),
                 )
             ),
         ))
+    }
+
+    @Composable
+    fun SendLayer(onClick: () -> Unit, value: String, onValueChange: (String) -> Unit, ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // TODO 基于状态的文本字段
+            TextField(
+                value = value,
+                onValueChange = onValueChange,
+                maxLines = 3,
+//                modifier = Modifier.fillMaxWidth()
+            )
+            IconButton(onClick, shape = IconButtonDefaults.filledShape) { Icon(Icons.Filled.Send, contentDescription = "发送") }
+        }
     }
 }

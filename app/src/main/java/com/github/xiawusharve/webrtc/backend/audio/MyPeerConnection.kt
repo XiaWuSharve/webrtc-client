@@ -37,4 +37,8 @@ class MyPeerConnection(
     fun addCandidate(candidate: IceCandidate) {
         peerConnection.addIceCandidate(candidate)
     }
+
+    fun removeCandidate(p0: Array<out IceCandidate?>?) {
+        peerConnection.removeIceCandidates(p0)
+    }
 }

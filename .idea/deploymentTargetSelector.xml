@@ -3,7 +3,7 @@
   <component name="deploymentTargetSelector">
     <selectionStates>
       <SelectionState runConfigName="app">
-        <option name="selectionMode" value="DROPDOWN" />
+        <option name="selectionMode" value="DIALOG" />
         <DropdownSelection timestamp="2026-07-11T17:53:42.195192Z">
           <Target type="DEFAULT_BOOT">
             <handle>
@@ -20,7 +20,7 @@
             </Target>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\sharve\.android\avd\caller_2.avd" />
+                <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\sharve\.android\avd\Medium_Phone.avd" />
               </handle>
             </Target>
           </targets>

@@ -1,22 +1,47 @@
 package com.github.xiawusharve.webrtc.backend.message
 
 import android.util.Log
+import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnit
+import com.github.xiawusharve.webrtc.backend.message.dto.request.CandidateData
+import com.github.xiawusharve.webrtc.backend.message.dto.request.CandidateMessageRequest
+import com.github.xiawusharve.webrtc.backend.message.dto.request.ChatDataRequest
+import com.github.xiawusharve.webrtc.backend.message.dto.request.ChatMessageRequest
+import com.github.xiawusharve.webrtc.backend.message.dto.request.ConnectDataRequest
+import com.github.xiawusharve.webrtc.backend.message.dto.request.ConnectMessageRequest
+import com.github.xiawusharve.webrtc.backend.message.dto.request.MessageRequest
+import com.github.xiawusharve.webrtc.backend.message.dto.response.CandidateMessageResponse
+import com.github.xiawusharve.webrtc.backend.message.dto.response.ChatMessageResponse
+import com.github.xiawusharve.webrtc.backend.message.dto.response.ConnectMessageResponse
+import com.github.xiawusharve.webrtc.backend.message.dto.response.ConnectStatus
+import com.github.xiawusharve.webrtc.backend.message.dto.response.MessageResponse
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNamingStrategy
 import org.java_websocket.client.WebSocketClient
 import org.java_websocket.handshake.ServerHandshake
-import org.json.JSONException
-import org.json.JSONObject
 import org.webrtc.IceCandidate
-import org.webrtc.SessionDescription
-import java.lang.Exception
 import java.net.URI
+import java.util.Date
 
 open class SignalingClient(
     serverUri: URI,
 ) : WebSocketClient(serverUri) {
+    private lateinit var displayName: String
     private lateinit var localId: String
     private lateinit var remoteId: String
-    private lateinit var signalingClientObserver: SignalExchangeObserver
+    private lateinit var messageObserver: MessageObserver
+    @OptIn(ExperimentalSerializationApi::class)
+    private val json = Json {
+        classDiscriminator = "type"
+        namingStrategy = JsonNamingStrategy.SnakeCase
+        decodeEnumsCaseInsensitive = true
+    }
     private val TAG = "SignalingClient"
+
+    fun connect(messageObserver: MessageObserver) {
+        super.connect()
+        this.messageObserver = messageObserver
+    }
 
     override fun onOpen(handshakedata: ServerHandshake?) {
         Log.i(TAG, "onOpen handshakedata=$handshakedata")
@@ -24,46 +49,22 @@ open class SignalingClient(
 
     override fun onMessage(message: String) {
         Log.d(TAG, "received: $message")
-        try {
-            val jsonObject = JSONObject(message)
-            val type = jsonObject.getString("type")
-            when (type) {
-                "connect" -> {
-                    val status = jsonObject.getInt("data")
-                    if (status != 0) {
-                        Log.e(TAG, "registering user failed, see server logs")
-                    }
-                    signalingClientObserver.onConnected(status)
-                }
-                "call" -> {
-                    val data = jsonObject.getJSONObject("data")
-                    val remoteSdp = data.getString("sdp")
-                    val remoteId = data.getString("remoteId")
-                    this.remoteId = remoteId
-                    signalingClientObserver.onReceiveCall(
-                        SessionDescription(
-                            SessionDescription.Type.OFFER, remoteSdp
-                        )
-                    )
-                }
-                "answer" -> {
-                    val remoteSdp = jsonObject.getString("data")
-                    signalingClientObserver.onReceiveAnswer(
-                        SessionDescription(
-                            SessionDescription.Type.ANSWER,
-                            remoteSdp
-                        ))
-                }
-                "candidate" -> {
-                    val data = jsonObject.getJSONObject("data")
-                    val sdpMid = data.getString("sdpMid")
-                    val sdpMLineIndex = data.getInt("sdpMLineIndex")
-                    val sdp = data.getString("sdp")
-                    signalingClientObserver.onReceiveCandidate(IceCandidate(sdpMid, sdpMLineIndex, sdp))
-                }
+        when(val messageRequestObj = json.decodeFromString<MessageResponse>(message)) {
+            is ChatMessageResponse -> {
+                messageObserver.onReceiveMessage(messageRequestObj)
             }
-        } catch (e: JSONException) {
-            Log.e(TAG, "failed to parse message: $e")
+            is ConnectMessageResponse -> {
+                if (messageRequestObj.status != ConnectStatus.SUCCESS) {
+                    Log.e(TAG, "registering user failed, see server logs")
+                }
+                messageObserver.onConnected(messageRequestObj.status)
+            }
+            is CandidateMessageResponse -> {
+                messageObserver.onReceiveCandidate(IceCandidate(
+                    messageRequestObj.data.sdpMid,
+                    messageRequestObj.data.sdpMLineIndex,
+                    messageRequestObj.data.sdp))
+            }
         }
     }
 
@@ -75,51 +76,37 @@ open class SignalingClient(
         Log.i(TAG, "onError ex=$ex")
     }
 
-    fun register(localId: String, signalingClientObserver: SignalExchangeObserverImpl) {
+    // TODO: 添加连接成功回调
+    fun register(
+        localId: String,
+        remoteId: String,
+        displayName: String
+    ) {
         Log.d(TAG, "registering user")
         this.localId = localId
-        signalingClientObserver.setSignalingClient(this)
-        this.signalingClientObserver = signalingClientObserver
-        val jsonObject = JSONObject()
-        jsonObject.put("type", "connect")
-        jsonObject.put("data", this.localId)
-        send(jsonObject.toString())
-    }
-
-    fun call(sdp: SessionDescription) {
-        Log.i(TAG, "call")
-        val data = JSONObject()
-        data.put("sdp", sdp.description)
-            .put("remoteId", remoteId)
-            .put("localId", localId)
-        val jsonObject = JSONObject()
-        jsonObject.put("type", "call")
-            .put("data", data)
-        send(jsonObject.toString())
-    }
-
-    fun answer(sdp: SessionDescription) {
-        Log.i(TAG, "answer")
-        val data = JSONObject()
-        data.put("sdp", sdp.description)
-            .put("sessionId", remoteId)
-        val jsonObject = JSONObject()
-        jsonObject.put("type", "answer")
-            .put("data", data)
-        send(jsonObject.toString())
+        this.remoteId = remoteId
+        this.displayName = displayName
+        val req: MessageRequest = ConnectMessageRequest(
+            ConnectDataRequest(localId, displayName),
+            Date().time
+        )
+        send(json.encodeToString(req))
     }
 
     fun sendCandidate(candidate: IceCandidate) {
-        val data = JSONObject()
-        data
-            .put("sessionId", remoteId)
-            .put("sdp", candidate.sdp)
-            .put("sdpMid", candidate.sdpMid)
-            .put("sdpMLineIndex", candidate.sdpMLineIndex)
-        val jsonObject = JSONObject()
-        jsonObject.put("type", "candidate")
-            .put("data", data)
-        send(jsonObject.toString())
+        val req: MessageRequest = CandidateMessageRequest(
+            data = CandidateData(this.remoteId, candidate.sdpMid, candidate.sdpMLineIndex, candidate.sdp),
+            createdTime = Date().time
+        )
+        send(json.encodeToString(req))
+    }
+
+    fun sendChatMessage(messageChain: List<MessageUnit>) {
+        val req: MessageRequest = ChatMessageRequest(
+            Date().time,
+            ChatDataRequest(remoteId, messageChain),
+        )
+        send(json.encodeToString(req))
     }
 
     fun setRemoteId(remoteId: String) {

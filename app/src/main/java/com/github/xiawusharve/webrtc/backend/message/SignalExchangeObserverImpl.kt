@@ -3,7 +3,7 @@ package com.github.xiawusharve.webrtc.backend.message
 import android.util.Log
 import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnection
 import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnectionFactoryBuilder
-import com.github.xiawusharve.webrtc.backend.audio.PeerConnectionObserver
+import com.github.xiawusharve.webrtc.backend.audio.PeerConnectionObserverImpl
 import com.github.xiawusharve.webrtc.backend.audio.builder
 import org.webrtc.IceCandidate
 import org.webrtc.SdpObserver
@@ -11,28 +11,26 @@ import org.webrtc.SessionDescription
 
 class SignalExchangeObserverImpl(
     private val peerConnectionFactoryBuilder: MyPeerConnectionFactoryBuilder,
-    private val peerConnectionObserver: PeerConnectionObserver,
+    private val signalingClient: SignalingClient
 ): SignalExchangeObserver {
-    init {
-        peerConnectionObserver.setSignalExchangeObserver(this)
-    }
     companion object {
         private const val TAG = "SignalExchangeObserver"
     }
     private val candidates: ArrayList<IceCandidate> = ArrayList()
     private var candidateReady = false
     private lateinit var peerConnection: MyPeerConnection
-    private lateinit var signalingClient: SignalingClient
 
     fun setPeerConnection(peerConnection: MyPeerConnection) {
         this.peerConnection = peerConnection
     }
-    fun setSignalingClient(signalingClient: SignalingClient) {
-        this.signalingClient = signalingClient
-    }
 
     override fun onReceiveCall(sdp: SessionDescription) {
         Log.d(TAG, "received call")
+        this.peerConnection = peerConnectionFactoryBuilder.createMyPeerConnection(
+            PeerConnectionObserverImpl(this)
+        )
+//        peerConnection.addTrack()
+
         peerConnection.setRemoteSdp(object : SdpObserver {
             override fun onCreateSuccess(p0: SessionDescription?) {
                 TODO("Not yet implemented")
@@ -40,7 +38,6 @@ class SignalExchangeObserverImpl(
 
             override fun onSetSuccess() {
                 Log.d(TAG, "setRemoteSdp success")
-                onAnswer()
             }
 
             override fun onCreateFailure(p0: String?) {
@@ -89,10 +86,16 @@ class SignalExchangeObserverImpl(
         }
     }
 
-    override fun onConnected(code: Int) {
-        Log.d(TAG, "connection established: $code")
-        this.peerConnection = peerConnectionFactoryBuilder.createMyPeerConnection(peerConnectionObserver)
-//        peerConnection.addTrack()
+    override fun onSendCandidate(candidate: IceCandidate) {
+        signalingClient.sendCandidate(candidate)
+    }
+
+    override fun onRemoveCandidate(p0: Array<out IceCandidate?>?) {
+        peerConnection.removeCandidate(p0)
+    }
+
+    override fun onReceiveEstablish() {
+        Log.d(TAG, "onReceiveEstablish")
     }
 
     override fun onCall() {
@@ -107,7 +110,7 @@ class SignalExchangeObserverImpl(
                         }
 
                         override fun onSetSuccess() {
-                            signalingClient.call(p0)
+                            TODO("Not yet implemented")
                         }
 
                         override fun onCreateFailure(error: String?) {
@@ -149,7 +152,6 @@ class SignalExchangeObserverImpl(
                         }
 
                         override fun onSetSuccess() {
-                            signalingClient.answer(p0)
                             candidateReady = true
                             for (c in candidates) {
                                 Log.d(TAG, "cached candidate: ${c.sdp}")
@@ -184,13 +186,5 @@ class SignalExchangeObserverImpl(
                 TODO("Not yet implemented")
             }
         })
-    }
-
-    override fun onConnect() {
-        TODO("Not yet implemented")
-    }
-
-    override fun onCandidate(candidate: IceCandidate) {
-        signalingClient.sendCandidate(candidate)
     }
 }

@@ -1,7 +1,7 @@
 package com.github.xiawusharve.webrtc.backend.audio
 
 import android.util.Log
-import com.github.xiawusharve.webrtc.backend.message.SignalExchangeObserverImpl
+import com.github.xiawusharve.webrtc.backend.message.SignalExchangeObserver
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
 import org.webrtc.IceCandidateErrorEvent
@@ -10,14 +10,9 @@ import org.webrtc.PeerConnection
 import org.webrtc.RtpReceiver
 import org.webrtc.RtpTransceiver
 
-class PeerConnectionObserver: PeerConnection.Observer {
-    private lateinit var signalExchangeObserver: SignalExchangeObserverImpl
+class PeerConnectionObserverImpl(private val signalExchangeObserver: SignalExchangeObserver): PeerConnection.Observer {
     companion object {
         const val TAG = "PeerConnectionObserver"
-    }
-
-    fun setSignalExchangeObserver(signalExchangeObserver: SignalExchangeObserverImpl) {
-        this.signalExchangeObserver = signalExchangeObserver
     }
 
     override fun onSignalingChange(newState: PeerConnection.SignalingState?) {
@@ -38,16 +33,11 @@ class PeerConnectionObserver: PeerConnection.Observer {
 
     override fun onIceCandidate(candidate: IceCandidate?) {
         Log.d(TAG, "sending candidate")
-        if (candidate != null) signalExchangeObserver.onCandidate(candidate)
+        if (candidate != null) signalExchangeObserver.onSendCandidate(candidate)
     }
-
     override fun onIceCandidateError(event: IceCandidateErrorEvent?) {
         super.onIceCandidateError(event)
         Log.e(TAG, "onIceCandidateError: ${event?.errorText}")
-    }
-
-    override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate?>?) {
-//        peerConnection.removeIceCandidates(candidates)
     }
 
     override fun onRemoveStream(stream: MediaStream?) {
@@ -96,5 +86,10 @@ class PeerConnectionObserver: PeerConnection.Observer {
                 track.setEnabled(true)
             }
         }
+    }
+
+    override fun onIceCandidatesRemoved(p0: Array<out IceCandidate?>?) {
+        Log.v(TAG, "onIceCandidatesRemoved: ${p0.contentToString()}")
+        signalExchangeObserver.onRemoveCandidate(p0)
     }
 }

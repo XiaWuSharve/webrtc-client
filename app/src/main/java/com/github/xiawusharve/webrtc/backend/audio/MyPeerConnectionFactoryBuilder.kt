@@ -174,7 +174,7 @@ class MyPeerConnectionFactoryBuilder(
         this.audioTrack = peerConnectionFactory.createAudioTrack(audioTrackId, audioSource)
         audioTrack.setEnabled(true)
     }
-    fun createMyPeerConnection(peerConnectionObserver: PeerConnectionObserver): MyPeerConnection {
+    fun createMyPeerConnection(peerConnectionObserver: PeerConnectionObserverImpl): MyPeerConnection {
         val peerConnection = peerConnectionFactory.createPeerConnection(rtcConfiguration, peerConnectionObserver)
                 ?: throw IllegalStateException("无法创建 PeerConnection")
         val myPeerConnection = MyPeerConnection(
