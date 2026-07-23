@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -362,8 +365,9 @@ class MainActivity : AppCompatActivity() {
                             editMessage = "" },
                         value = editMessage,
                         onValueChange = { v -> editMessage = v}
-                    )
-                }
+                    , modifier = Modifier.fillMaxWidth().padding(all = 8.dp))
+                },
+                modifier = Modifier.fillMaxSize().padding(all = 8.dp).imePadding()
             ) { innerPadding ->
                 Column(
                     modifier = Modifier
@@ -427,16 +431,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun SendLayer(onClick: () -> Unit, value: String, onValueChange: (String) -> Unit, ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    fun SendLayer(onClick: () -> Unit, value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
             // TODO 基于状态的文本字段
-            TextField(
+            OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
                 maxLines = 3,
-//                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(1f)
             )
-            IconButton(onClick, shape = IconButtonDefaults.filledShape) { Icon(Icons.Filled.Send, contentDescription = "发送") }
+            FilledIconButton(onClick) { Icon(Icons.Filled.Send, contentDescription = "发送") }
         }
     }
 }
