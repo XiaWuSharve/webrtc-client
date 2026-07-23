@@ -75,7 +75,7 @@ class MainActivity : AppCompatActivity() {
         private const val TURN_URL = "turn:101.37.76.38:3480?transport=udp"
         private const val TURN_USERNAME = "sharve"
         private const val TURN_PASSWORD = "sharve"
-        private const val WS_URL = "ws://192.168.251.148:3001/ws"
+        private const val WS_URL = "ws://101.37.76.38:3001/ws"
         private const val iceCheckIntervalStrongConnectivityMs = 2000
         private const val iceConnectionReceivingTimeout = 3000
         private const val AUDIO_TRACK_ID = "demoAudioTrackId"
@@ -94,24 +94,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initCommunicationComponents() {
-
-        // init webRTC
-//        this.rtcClient = RtcClient(
-//            WS_URL = WS_URL,
-//            context = this,
-//            TURN_URL = TURN_URL,
-//            TURN_USERNAME = TURN_USERNAME,
-//            TURN_PASSWORD = TURN_PASSWORD
-//        )
-//        this.rtcClient.init(object : RtcClientObserver {
-//            override fun onInitFail(e: Exception) {
-//                Toast.makeText(this@MainActivity, "初始化失败: ${e.message}", Toast.LENGTH_LONG).show()
-//            }
-//
-//            override fun onInitSuccess() {
-//                Log.i(TAG, "通讯组件初始化成功")
-//            }
-//        })
         Log.i(TAG, "初始化通讯组件")
         // connect
         val signalingClient = SignalingClient(URI(WS_URL))
@@ -179,9 +161,7 @@ class MainActivity : AppCompatActivity() {
         signalingClient.register(localId, remoteId, displayName) // TODO: 添加连接成功回调
     }
 
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun send(text: String): Boolean {
-        Log.i(TAG, "sending $text")
+    private fun text2MessageChain(text: String): List<MessageUnit> {
         // abc/calldef/answerghi/establishjkl -> abc /call def /answer ghi /establish jkl
         // TODO 检查空字符串格式问题
         val result = text.split(Regex("(?=/call|/answer|/establish)|(?<=/call|/answer|/establish)"))
@@ -193,12 +173,18 @@ class MainActivity : AppCompatActivity() {
                 else -> MessageUnitType.TEXT
             }, s)
         }.collect(Collectors.toList())
-        val p = messageChain.stream().filter { m ->
+        return messageChain
+    }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private fun send(messageChain: List<MessageUnit>): Boolean {
+        Log.i(TAG, "sending $messageChain")
+        val p: MessageUnit? = messageChain.stream().filter { m ->
             m.type == MessageUnitType.CALL
             || m.type == MessageUnitType.ANSWER
             || m.type == MessageUnitType.ESTABLISH
         }.findFirst().orElse(null)
-        when(p.type) {
+        when(p?.type) {
             MessageUnitType.CALL -> signalExchangeObserver.onCall(messageChain, p)
             MessageUnitType.ANSWER -> signalExchangeObserver.onAnswer(messageChain, p)
             MessageUnitType.ESTABLISH -> signalExchangeObserver.onEstablish(messageChain, p)
@@ -365,7 +351,15 @@ class MainActivity : AppCompatActivity() {
             Scaffold(
                 bottomBar = {
                     SendLayer(
-                        onClick = { send(editMessage) },
+                        onClick = {
+                            val messageChain = text2MessageChain(editMessage)
+                            send(messageChain)
+                            messageList.add(MessagePreview(
+                                displayName = config.displayName,
+                                time = Date(),
+                                messageChain = messageChain
+                            ))
+                            editMessage = "" },
                         value = editMessage,
                         onValueChange = { v -> editMessage = v}
                     )

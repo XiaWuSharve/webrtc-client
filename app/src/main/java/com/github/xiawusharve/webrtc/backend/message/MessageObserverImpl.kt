@@ -12,7 +12,7 @@ import java.util.Date
 
 class MessageObserverImpl(
     private val context: Context,
-    private var messageListStatus: List<MessagePreview>,
+    private var messageListStatus: MutableList<MessagePreview>,
     private val signalExchangeObserver: SignalExchangeObserver
 ): MessageObserver {
     override fun onConnected(code: ConnectStatus) {
@@ -57,15 +57,14 @@ class MessageObserverImpl(
                 }
 
                 MessageUnitType.TEXT -> {
-
                 }
             }
         }
-        messageListStatus = messageListStatus + MessagePreview(
+        messageListStatus.add(MessagePreview(
             messages.data.displayName,
             Date(messages.createdTime),
             messages.data.messageChain
-        )
+        ))
     }
 
     override fun onSendMessage() {
