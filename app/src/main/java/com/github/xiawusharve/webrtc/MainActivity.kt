@@ -31,13 +31,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -52,7 +50,7 @@ import androidx.compose.ui.unit.dp
 import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnectionFactoryBuilder
 import com.github.xiawusharve.webrtc.backend.message.MessageObserverImpl
 import com.github.xiawusharve.webrtc.backend.message.SignalExchangeObserverImpl
-import com.github.xiawusharve.webrtc.backend.message.SignalingClient
+import com.github.xiawusharve.webrtc.backend.message.WebSocketSignalingClient
 import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnit
 import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnitType
 import com.github.xiawusharve.webrtc.ui.theme.WebrtcTheme
@@ -67,7 +65,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var signalExchangeObserver: SignalExchangeObserverImpl
     private val messageList = mutableStateListOf<MessagePreview>()
-    private lateinit var signalingClient: SignalingClient
+    private lateinit var signalingClient: WebSocketSignalingClient
     private val simpleDateFormat = SimpleDateFormat.getDateTimeInstance(
         DateFormat.SHORT, DateFormat.SHORT
     )
@@ -99,7 +97,7 @@ class MainActivity : AppCompatActivity() {
     private fun initCommunicationComponents() {
         Log.i(TAG, "初始化通讯组件")
         // connect
-        val signalingClient = SignalingClient(URI(WS_URL))
+        val signalingClient = WebSocketSignalingClient(URI(WS_URL))
         // webrtc
         val myPeerConnectionFactoryBuilder = MyPeerConnectionFactoryBuilder(this)
         myPeerConnectionFactoryBuilder.createRTCConfiguration(

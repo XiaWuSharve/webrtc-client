@@ -5,8 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.github.xiawusharve.webrtc.backend.message.SignalExchangeObserverImpl
-import com.github.xiawusharve.webrtc.backend.message.SignalingClient
-import java.net.URI
+import com.github.xiawusharve.webrtc.backend.message.WebSocketSignalingClient
 
 class RtcClient(
     private val WS_URL: String,
@@ -16,7 +15,7 @@ class RtcClient(
     val TURN_PASSWORD: String,
 ): BroadcastReceiver() {
 
-    private lateinit var signalingClient: SignalingClient
+    private lateinit var signalingClient: WebSocketSignalingClient
     private lateinit var signalExchangeObserver: SignalExchangeObserverImpl
     private lateinit var myPeerConnectionFactoryBuilder: MyPeerConnectionFactoryBuilder
 

@@ -19,6 +19,7 @@ activityCompose = "1.8.0"
 kotlin = "2.2.10"
 composeBom = "2026.02.01"
 permissionx = "1.8.1"
+protobufKotlin = "4.35.1"
 streamWebrtcAndroid = "1.3.10"
 streamWebrtcAndroidVersion = "1.1.1"
 
@@ -49,6 +50,7 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 kcp-base = { module = "com.github.l42111996:kcp-base", version.ref = "kcpBase" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 permissionx = { module = "com.guolindev.permissionx:permissionx", version.ref = "permissionx" }
+protobuf-kotlin = { module = "com.google.protobuf:protobuf-kotlin", version.ref = "protobufKotlin" }
 stream-webrtc-android = { module = "io.getstream:stream-webrtc-android", version.ref = "streamWebrtcAndroid" }
 stream-webrtc-android-v111 = { module = "io.getstream:stream-webrtc-android", version.ref = "streamWebrtcAndroidVersion" }
 

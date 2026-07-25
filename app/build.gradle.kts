@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-//    kotlin("jvm") version "2.1.21"
     kotlin("plugin.serialization") version "2.1.21"
 }
 
@@ -73,4 +72,6 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     // Source: https://mvnrepository.com/artifact/com.github.l42111996/kcp-base
     implementation(libs.kcp.base)
+    // Source: https://mvnrepository.com/artifact/com.google.protobuf/protobuf-kotlin
+    implementation(libs.protobuf.kotlin)
 }
