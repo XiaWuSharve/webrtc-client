@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.github.xiawusharve.webrtc"
     compileSdk {
-        version = release(36) {
+        version = release(37) {
             minorApiLevel = 1
         }
     }
@@ -31,7 +31,6 @@ android {
         }
     }
     compileOptions {
-//        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -73,9 +72,9 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     // Source: https://mvnrepository.com/artifact/com.github.l42111996/kcp-base
     implementation(libs.kcp.base)
-    implementation("com.google.protobuf:protobuf-javalite:4.35.1")
+    implementation(libs.protobuf.javalite)
     // Source: https://mvnrepository.com/artifact/com.google.protobuf/protobuf-kotlin-lite
-    implementation("com.google.protobuf:protobuf-kotlin-lite:4.35.1")
+    implementation(libs.protobuf.kotlin.lite)
 
 }
 
