@@ -5,9 +5,6 @@ import com.github.xiawusharve.webrtc.MessageOuterClass
 import com.github.xiawusharve.webrtc.candidateMessage
 import com.github.xiawusharve.webrtc.connectMessageRequest
 import com.github.xiawusharve.webrtc.message
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonNamingStrategy
 import org.java_websocket.client.WebSocketClient
 import org.java_websocket.handshake.ServerHandshake
 import org.webrtc.IceCandidate
@@ -22,13 +19,7 @@ open class WebSocketSignalingClient(
     private lateinit var localId: String
     private lateinit var remoteId: String
     private lateinit var messageObserver: MessageObserver
-    @OptIn(ExperimentalSerializationApi::class)
-    private val json = Json {
-        classDiscriminator = "type"
-        namingStrategy = JsonNamingStrategy.SnakeCase
-        decodeEnumsCaseInsensitive = true
-    }
-    private val TAG = "SignalingClient"
+    private val TAG = "WebSocketSignalingClient"
 
     override fun connect(messageObserver: MessageObserver) {
         super.connect()
@@ -88,7 +79,7 @@ open class WebSocketSignalingClient(
         this.displayName = displayName
         val req: MessageOuterClass.Message = message {
             createdTime = Date().time
-            connectMessageRequest {
+            connectMessageRequest = connectMessageRequest {
                 id = localId
                 this@connectMessageRequest.displayName = displayName
             }
@@ -99,7 +90,7 @@ open class WebSocketSignalingClient(
     override fun sendCandidate(candidate: IceCandidate) {
         val req: MessageOuterClass.Message = message {
             createdTime = Date().time
-            candidateMessage {
+            candidateMessage = candidateMessage {
                 remoteId = this.remoteId
                 sdpMid = candidate.sdpMid
                 sdpMlineIndex = candidate.sdpMLineIndex
@@ -120,7 +111,4 @@ open class WebSocketSignalingClient(
         send(req.toByteArray())
     }
 
-    fun setRemoteId(remoteId: String) {
-        this.remoteId = remoteId
-    }
 }

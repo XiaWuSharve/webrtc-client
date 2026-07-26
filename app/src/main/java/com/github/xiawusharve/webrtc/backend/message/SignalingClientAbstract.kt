@@ -1,6 +1,8 @@
 package com.github.xiawusharve.webrtc.backend.message
 
-abstract class SignalingClientAbstract: SignalingClient {
+import java.net.URI
+
+abstract class SignalingClientAbstract(private val serverUri: URI): SignalingClient {
     abstract var messageObserver: MessageObserver
 
     override fun connect(messageObserver: MessageObserver) {

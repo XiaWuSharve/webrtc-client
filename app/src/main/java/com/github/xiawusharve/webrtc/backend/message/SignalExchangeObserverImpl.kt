@@ -12,7 +12,7 @@ import org.webrtc.SessionDescription
 
 class SignalExchangeObserverImpl(
     private val peerConnectionFactoryBuilder: MyPeerConnectionFactoryBuilder,
-    private val signalingClient: WebSocketSignalingClient
+    private val signalingClient: SignalingClient
 ): SignalExchangeObserver {
     companion object {
         private const val TAG = "SignalExchangeObserver"

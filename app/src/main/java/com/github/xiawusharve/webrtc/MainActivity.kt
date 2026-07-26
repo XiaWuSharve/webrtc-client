@@ -47,22 +47,29 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.backblaze.erasure.FecAdapt
 import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnectionFactoryBuilder
+import com.github.xiawusharve.webrtc.backend.message.KCPSignalingClient
 import com.github.xiawusharve.webrtc.backend.message.MessageObserverImpl
 import com.github.xiawusharve.webrtc.backend.message.SignalExchangeObserverImpl
+import com.github.xiawusharve.webrtc.backend.message.SignalingClient
 import com.github.xiawusharve.webrtc.backend.message.WebSocketSignalingClient
 import com.github.xiawusharve.webrtc.ui.theme.WebrtcTheme
 import com.permissionx.guolindev.PermissionX
+import kcp.ChannelConfig
+import kcp.KcpConfig
+import java.net.ProtocolException
 import java.net.URI
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var signalExchangeObserver: SignalExchangeObserverImpl
     private val messageList = mutableStateListOf<MessagePreview>()
-    private lateinit var signalingClient: WebSocketSignalingClient
+    private lateinit var signalingClient: SignalingClient
     private val simpleDateFormat = SimpleDateFormat.getDateTimeInstance(
         DateFormat.SHORT, DateFormat.SHORT
     )
@@ -73,7 +80,7 @@ class MainActivity : AppCompatActivity() {
         private const val TURN_URL = "turn:101.37.76.38:3480?transport=udp"
         private const val TURN_USERNAME = "sharve"
         private const val TURN_PASSWORD = "sharve"
-        private const val WS_URL = "ws://101.37.76.38:3001/ws"
+        private const val WS_URL = "ws://192.168.239.36:3001/ws"
         private const val iceCheckIntervalStrongConnectivityMs = 2000
         private const val iceConnectionReceivingTimeout = 3000
         private const val AUDIO_TRACK_ID = "demoAudioTrackId"
@@ -91,10 +98,35 @@ class MainActivity : AppCompatActivity() {
         testNotification()
     }
 
-    private fun initCommunicationComponents() {
+    private fun initCommunicationComponents(protocol: String = "kcp") {
         Log.i(TAG, "初始化通讯组件")
         // connect
-        val signalingClient = WebSocketSignalingClient(URI(WS_URL))
+        var signalingClient: SignalingClient
+        when(protocol) {
+            "kcp" -> {
+                val kcpConfig = KcpConfig()
+                kcpConfig.nodelay(true, 40, 2, true)
+                kcpConfig.setSndwnd(1024)
+                kcpConfig.setRcvwnd(1024)
+                kcpConfig.setMtu(1400)
+                kcpConfig.isAckNoDelay = false
+                kcpConfig.setAckMaskSize(0)
+
+                val channelConfig = ChannelConfig(kcpConfig)
+
+//                channelConfig.setFecAdapt(FecAdapt(10, 3))
+
+
+                //channelConfig.setTimeoutMillis(10000);
+
+                //禁用参数
+                channelConfig.isCrc32Check = false
+                signalingClient = KCPSignalingClient(URI(WS_URL), channelConfig)
+            }
+            "websocket" ->  signalingClient = WebSocketSignalingClient(URI(WS_URL))
+            else -> throw ProtocolException("unknown protocol $protocol")
+        }
+
         // webrtc
         val myPeerConnectionFactoryBuilder = MyPeerConnectionFactoryBuilder(this)
         myPeerConnectionFactoryBuilder.createRTCConfiguration(
