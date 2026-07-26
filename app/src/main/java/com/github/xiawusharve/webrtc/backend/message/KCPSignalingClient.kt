@@ -1,11 +1,11 @@
 package com.github.xiawusharve.webrtc.backend.message
 
+import com.github.xiawusharve.webrtc.MessageOuterClass
 import io.netty.buffer.ByteBuf
 import kcp.ChannelConfig
 import kcp.KcpClient
 import kcp.KcpListener
 import kcp.Ukcp
-import message.MessageOuterClass
 import org.webrtc.IceCandidate
 import java.net.InetSocketAddress
 import java.net.URI

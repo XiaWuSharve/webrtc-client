@@ -1,6 +1,6 @@
 package com.github.xiawusharve.webrtc.backend.message
 
-import message.MessageOuterClass
+import com.github.xiawusharve.webrtc.MessageOuterClass
 import org.webrtc.IceCandidate
 
 interface MessageObserver {

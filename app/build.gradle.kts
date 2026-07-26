@@ -73,20 +73,26 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     // Source: https://mvnrepository.com/artifact/com.github.l42111996/kcp-base
     implementation(libs.kcp.base)
-    // Source: https://mvnrepository.com/artifact/com.google.protobuf/protobuf-kotlin
-    implementation(libs.protobuf.kotlin)
-//    implementation(libs.protobuf.java)
-    implementation(libs.protobuf.javalite)
+    implementation("com.google.protobuf:protobuf-javalite:4.35.1")
+    // Source: https://mvnrepository.com/artifact/com.google.protobuf/protobuf-kotlin-lite
+    implementation("com.google.protobuf:protobuf-kotlin-lite:4.35.1")
+
 }
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:3.25.3"
+        artifact = "com.google.protobuf:protoc:4.35.1"
     }
     generateProtoTasks {
-        all().forEach { task ->
-            task.builtins {
+        all().configureEach {
+            // 这里的 this 就是 GenerateProtoTask 对象
+            builtins {
+                // 用 create 代替直接调用 java { }
                 create("java") {
+                    option("lite")
+                }
+                // Kotlin Lite 生成
+                create("kotlin") {
                     option("lite")
                 }
             }

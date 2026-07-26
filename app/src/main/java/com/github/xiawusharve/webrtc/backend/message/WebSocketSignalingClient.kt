@@ -2,15 +2,12 @@ package com.github.xiawusharve.webrtc.backend.message
 
 import android.util.Log
 import com.github.xiawusharve.webrtc.MessageOuterClass
+import com.github.xiawusharve.webrtc.candidateMessage
+import com.github.xiawusharve.webrtc.connectMessageRequest
+import com.github.xiawusharve.webrtc.message
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
-import message.MessageOuterClass
-import message.MessageOuterClass.Message
-import message.candidateMessage
-import message.chatMessage
-import message.connectMessageRequest
-import message.message
 import org.java_websocket.client.WebSocketClient
 import org.java_websocket.handshake.ServerHandshake
 import org.webrtc.IceCandidate
@@ -48,18 +45,18 @@ open class WebSocketSignalingClient(
     override fun onMessage(bytes: ByteBuffer?) {
         super.onMessage(bytes)
         Log.d(TAG, "received: ${bytes.toString()}")
-        val message = Message.parseFrom(bytes)
+        val message = MessageOuterClass.Message.parseFrom(bytes)
         when(message.dataCase) {
-            Message.DataCase.CHAT_MESSAGE -> {
+            MessageOuterClass.Message.DataCase.CHAT_MESSAGE -> {
                 messageObserver.onReceiveMessage(message)
             }
-            Message.DataCase.CONNECT_MESSAGE_RESPONSE -> {
+            MessageOuterClass.Message.DataCase.CONNECT_MESSAGE_RESPONSE -> {
                 if (message.connectMessageResponse.status != MessageOuterClass.ConnectStatus.SUCCESS) {
                     Log.e(TAG, "registering user failed, see server logs")
                 }
                 messageObserver.onConnected(message.connectMessageResponse.status)
             }
-            Message.DataCase.CANDIDATE_MESSAGE -> {
+            MessageOuterClass.Message.DataCase.CANDIDATE_MESSAGE -> {
                 messageObserver.onReceiveCandidate(IceCandidate(
                     message.candidateMessage.sdpMid,
                     message.candidateMessage.sdpMlineIndex,
@@ -113,7 +110,7 @@ open class WebSocketSignalingClient(
     }
 
     override fun sendChatMessage(messageChain: List<MessageOuterClass.MessageUnit>) {
-        val req: Message = message {
+        val req: MessageOuterClass.Message = message {
             createdTime = Date().time
             chatMessage = MessageOuterClass.ChatMessage.newBuilder()
                 .setRemoteId(remoteId)
