@@ -1,13 +1,12 @@
 package com.github.xiawusharve.webrtc.backend.message
 
-import com.github.xiawusharve.webrtc.backend.message.dto.response.ChatMessageResponse
-import com.github.xiawusharve.webrtc.backend.message.dto.response.ConnectStatus
+import message.MessageOuterClass
 import org.webrtc.IceCandidate
 
 interface MessageObserver {
-    fun onConnected(code: ConnectStatus)
+    fun onConnected(code: MessageOuterClass.ConnectStatus)
     fun onConnect()
-    fun onReceiveMessage(messages: ChatMessageResponse)
+    fun onReceiveMessage(messages: MessageOuterClass.Message)
     fun onSendMessage()
     fun onReceiveCandidate(iceCandidate: IceCandidate)
 }

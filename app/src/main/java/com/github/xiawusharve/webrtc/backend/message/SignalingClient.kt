@@ -1,6 +1,6 @@
 package com.github.xiawusharve.webrtc.backend.message
 
-import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnit
+import com.github.xiawusharve.webrtc.MessageOuterClass
 import org.webrtc.IceCandidate
 
 interface SignalingClient {
@@ -11,5 +11,5 @@ interface SignalingClient {
         displayName: String
     )
     fun sendCandidate(candidate: IceCandidate)
-    fun sendChatMessage(messageChain: List<MessageUnit>)
+    fun sendChatMessage(messageChain: List<MessageOuterClass.MessageUnit>)
 }

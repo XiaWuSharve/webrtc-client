@@ -1,6 +1,6 @@
 package com.github.xiawusharve.webrtc.backend.message
 
-import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnit
+import message.MessageOuterClass
 import org.webrtc.IceCandidate
 import org.webrtc.SessionDescription
 
@@ -11,7 +11,7 @@ interface SignalExchangeObserver {
     fun onReceiveCandidate(candidate: IceCandidate)
     fun onSendCandidate(candidate: IceCandidate)
     fun onRemoveCandidate(p0: Array<out IceCandidate?>?)
-    fun onCall(messageChain: List<MessageUnit>, p: MessageUnit)
-    fun onAnswer(messageChain: List<MessageUnit>, p: MessageUnit)
-    fun onEstablish(messageChain: List<MessageUnit>, p: MessageUnit)
+    fun onCall(cb: (sdp: String) -> List<MessageOuterClass.MessageUnit>)
+    fun onAnswer(cb: (sdp: String) -> List<MessageOuterClass.MessageUnit>)
+    fun onEstablish(cb: () -> List<MessageOuterClass.MessageUnit>)
 }

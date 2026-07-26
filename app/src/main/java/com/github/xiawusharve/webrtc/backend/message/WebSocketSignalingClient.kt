@@ -1,26 +1,21 @@
 package com.github.xiawusharve.webrtc.backend.message
 
 import android.util.Log
-import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnit
-import com.github.xiawusharve.webrtc.backend.message.dto.request.CandidateData
-import com.github.xiawusharve.webrtc.backend.message.dto.request.CandidateMessageRequest
-import com.github.xiawusharve.webrtc.backend.message.dto.request.ChatDataRequest
-import com.github.xiawusharve.webrtc.backend.message.dto.request.ChatMessageRequest
-import com.github.xiawusharve.webrtc.backend.message.dto.request.ConnectDataRequest
-import com.github.xiawusharve.webrtc.backend.message.dto.request.ConnectMessageRequest
-import com.github.xiawusharve.webrtc.backend.message.dto.request.MessageRequest
-import com.github.xiawusharve.webrtc.backend.message.dto.response.CandidateMessageResponse
-import com.github.xiawusharve.webrtc.backend.message.dto.response.ChatMessageResponse
-import com.github.xiawusharve.webrtc.backend.message.dto.response.ConnectMessageResponse
-import com.github.xiawusharve.webrtc.backend.message.dto.response.ConnectStatus
-import com.github.xiawusharve.webrtc.backend.message.dto.response.MessageResponse
+import com.github.xiawusharve.webrtc.MessageOuterClass
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
+import message.MessageOuterClass
+import message.MessageOuterClass.Message
+import message.candidateMessage
+import message.chatMessage
+import message.connectMessageRequest
+import message.message
 import org.java_websocket.client.WebSocketClient
 import org.java_websocket.handshake.ServerHandshake
 import org.webrtc.IceCandidate
 import java.net.URI
+import java.nio.ByteBuffer
 import java.util.Date
 
 open class WebSocketSignalingClient(
@@ -47,23 +42,31 @@ open class WebSocketSignalingClient(
         Log.i(TAG, "onOpen handshakedata=$handshakedata")
     }
 
-    override fun onMessage(message: String) {
-        Log.d(TAG, "received: $message")
-        when(val messageRequestObj = json.decodeFromString<MessageResponse>(message)) {
-            is ChatMessageResponse -> {
-                messageObserver.onReceiveMessage(messageRequestObj)
+    override fun onMessage(message: String?) {
+    }
+
+    override fun onMessage(bytes: ByteBuffer?) {
+        super.onMessage(bytes)
+        Log.d(TAG, "received: ${bytes.toString()}")
+        val message = Message.parseFrom(bytes)
+        when(message.dataCase) {
+            Message.DataCase.CHAT_MESSAGE -> {
+                messageObserver.onReceiveMessage(message)
             }
-            is ConnectMessageResponse -> {
-                if (messageRequestObj.status != ConnectStatus.SUCCESS) {
+            Message.DataCase.CONNECT_MESSAGE_RESPONSE -> {
+                if (message.connectMessageResponse.status != MessageOuterClass.ConnectStatus.SUCCESS) {
                     Log.e(TAG, "registering user failed, see server logs")
                 }
-                messageObserver.onConnected(messageRequestObj.status)
+                messageObserver.onConnected(message.connectMessageResponse.status)
             }
-            is CandidateMessageResponse -> {
+            Message.DataCase.CANDIDATE_MESSAGE -> {
                 messageObserver.onReceiveCandidate(IceCandidate(
-                    messageRequestObj.data.sdpMid,
-                    messageRequestObj.data.sdpMLineIndex,
-                    messageRequestObj.data.sdp))
+                    message.candidateMessage.sdpMid,
+                    message.candidateMessage.sdpMlineIndex,
+                    message.candidateMessage.sdp))
+            }
+            else -> {
+                Log.e(TAG, "unknown message type ${message.dataCase.name}")
             }
         }
     }
@@ -86,27 +89,38 @@ open class WebSocketSignalingClient(
         this.localId = localId
         this.remoteId = remoteId
         this.displayName = displayName
-        val req: MessageRequest = ConnectMessageRequest(
-            ConnectDataRequest(localId, displayName),
-            Date().time
-        )
-        send(json.encodeToString(req))
+        val req: MessageOuterClass.Message = message {
+            createdTime = Date().time
+            connectMessageRequest {
+                id = localId
+                this@connectMessageRequest.displayName = displayName
+            }
+        }
+        send(req.toByteArray())
     }
 
     override fun sendCandidate(candidate: IceCandidate) {
-        val req: MessageRequest = CandidateMessageRequest(
-            data = CandidateData(this.remoteId, candidate.sdpMid, candidate.sdpMLineIndex, candidate.sdp),
+        val req: MessageOuterClass.Message = message {
             createdTime = Date().time
-        )
-        send(json.encodeToString(req))
+            candidateMessage {
+                remoteId = this.remoteId
+                sdpMid = candidate.sdpMid
+                sdpMlineIndex = candidate.sdpMLineIndex
+                sdp = candidate.sdp
+            }
+        }
+        send(req.toByteArray())
     }
 
-    override fun sendChatMessage(messageChain: List<MessageUnit>) {
-        val req: MessageRequest = ChatMessageRequest(
-            Date().time,
-            ChatDataRequest(remoteId, messageChain),
-        )
-        send(json.encodeToString(req))
+    override fun sendChatMessage(messageChain: List<MessageOuterClass.MessageUnit>) {
+        val req: Message = message {
+            createdTime = Date().time
+            chatMessage = MessageOuterClass.ChatMessage.newBuilder()
+                .setRemoteId(remoteId)
+                .addAllMessageChain(messageChain)
+                .build()
+        }
+        send(req.toByteArray())
     }
 
     fun setRemoteId(remoteId: String) {

@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     kotlin("plugin.serialization") version "2.1.21"
+    id("com.google.protobuf") version "0.10.0"
 }
 
 android {
@@ -74,4 +75,21 @@ dependencies {
     implementation(libs.kcp.base)
     // Source: https://mvnrepository.com/artifact/com.google.protobuf/protobuf-kotlin
     implementation(libs.protobuf.kotlin)
+//    implementation(libs.protobuf.java)
+    implementation(libs.protobuf.javalite)
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.25.3"
+    }
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                create("java") {
+                    option("lite")
+                }
+            }
+        }
+    }
 }

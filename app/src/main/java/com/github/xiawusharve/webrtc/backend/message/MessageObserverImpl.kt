@@ -2,10 +2,8 @@ package com.github.xiawusharve.webrtc.backend.message
 
 import android.content.Context
 import android.widget.Toast
+import com.github.xiawusharve.webrtc.MessageOuterClass
 import com.github.xiawusharve.webrtc.MessagePreview
-import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnitType
-import com.github.xiawusharve.webrtc.backend.message.dto.response.ChatMessageResponse
-import com.github.xiawusharve.webrtc.backend.message.dto.response.ConnectStatus
 import org.webrtc.IceCandidate
 import org.webrtc.SessionDescription
 import java.util.Date
@@ -15,12 +13,12 @@ class MessageObserverImpl(
     private var messageListStatus: MutableList<MessagePreview>,
     private val signalExchangeObserver: SignalExchangeObserver
 ): MessageObserver {
-    override fun onConnected(code: ConnectStatus) {
+    override fun onConnected(code: MessageOuterClass.ConnectStatus) {
         when (code) {
-            ConnectStatus.SUCCESS -> {
+            MessageOuterClass.ConnectStatus.SUCCESS -> {
                 Toast.makeText(context, "注册成功", Toast.LENGTH_SHORT).show()
             }
-            ConnectStatus.ALREADY_EXIST -> {
+            MessageOuterClass.ConnectStatus.ALREADY_EXIST -> {
                 Toast.makeText(context, "id已存在", Toast.LENGTH_LONG).show()
             }
             else -> {
@@ -33,10 +31,10 @@ class MessageObserverImpl(
         TODO("Not yet implemented")
     }
 
-    override fun onReceiveMessage(messages: ChatMessageResponse) {
-        for (m in messages.data.messageChain) {
+    override fun onReceiveMessage(messages: MessageOuterClass.Message) {
+        for (m in messages.chatMessage.messageChainList) {
             when(m.type) {
-                MessageUnitType.CALL -> {
+                MessageOuterClass.MessageUnitType.CALL -> {
                     signalExchangeObserver.onReceiveCall(
                         SessionDescription(
                             SessionDescription.Type.OFFER, m.message
@@ -44,7 +42,7 @@ class MessageObserverImpl(
                     )
                 }
 
-                MessageUnitType.ANSWER -> {
+                MessageOuterClass.MessageUnitType.ANSWER -> {
                     signalExchangeObserver.onReceiveAnswer(
                         SessionDescription(
                             SessionDescription.Type.ANSWER,
@@ -52,18 +50,20 @@ class MessageObserverImpl(
                         ))
                 }
 
-                MessageUnitType.ESTABLISH -> {
+                MessageOuterClass.MessageUnitType.ESTABLISH -> {
                     signalExchangeObserver.onReceiveEstablish()
                 }
 
-                MessageUnitType.TEXT -> {
+                MessageOuterClass.MessageUnitType.TEXT -> {
                 }
+
+                else -> {}
             }
         }
         messageListStatus.add(MessagePreview(
-            messages.data.displayName,
+            messages.chatMessage.displayName,
             Date(messages.createdTime),
-            messages.data.messageChain
+            messages.chatMessage.messageChainList
         ))
     }
 

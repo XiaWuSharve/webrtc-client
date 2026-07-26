@@ -1,13 +1,11 @@
 package com.github.xiawusharve.webrtc.backend.message
 
-import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnit
 import io.netty.buffer.ByteBuf
 import kcp.ChannelConfig
 import kcp.KcpClient
 import kcp.KcpListener
 import kcp.Ukcp
-import org.java_websocket.WebSocket
-import org.java_websocket.WebSocketListener
+import message.MessageOuterClass
 import org.webrtc.IceCandidate
 import java.net.InetSocketAddress
 import java.net.URI
@@ -36,7 +34,7 @@ open class KCPSignalingClient(
         TODO("Not yet implemented")
     }
 
-    override fun sendChatMessage(messageChain: List<MessageUnit>) {
+    override fun sendChatMessage(messageChain: List<MessageOuterClass.MessageUnit>) {
         TODO("Not yet implemented")
     }
 

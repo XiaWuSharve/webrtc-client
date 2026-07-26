@@ -51,15 +51,12 @@ import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnectionFactoryBuilde
 import com.github.xiawusharve.webrtc.backend.message.MessageObserverImpl
 import com.github.xiawusharve.webrtc.backend.message.SignalExchangeObserverImpl
 import com.github.xiawusharve.webrtc.backend.message.WebSocketSignalingClient
-import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnit
-import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnitType
 import com.github.xiawusharve.webrtc.ui.theme.WebrtcTheme
 import com.permissionx.guolindev.PermissionX
 import java.net.URI
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.stream.Collectors
 
 class MainActivity : AppCompatActivity() {
 
@@ -162,34 +159,46 @@ class MainActivity : AppCompatActivity() {
         signalingClient.register(localId, remoteId, displayName) // TODO: 添加连接成功回调
     }
 
-    private fun text2MessageChain(text: String): List<MessageUnit> {
+    data class MessageChainIndexed(val messageChain: List<MessageOuterClass.MessageUnit>, val index: Int)
+
+    fun text2MessageChain(editMessage: String): MessageChainIndexed {
         // abc/calldef/answerghi/establishjkl -> abc /call def /answer ghi /establish jkl
         // TODO 检查空字符串格式问题
-        val result = text.split(Regex("(?=/call|/answer|/establish)|(?<=/call|/answer|/establish)"))
-        val messageChain = result.stream().map { s -> MessageUnit(
-            when(s) {
-                "/call" -> MessageUnitType.CALL
-                "/answer" -> MessageUnitType.ANSWER
-                "/establish" -> MessageUnitType.ESTABLISH
-                else -> MessageUnitType.TEXT
-            }, s)
-        }.collect(Collectors.toList())
-        return messageChain
+        var result = editMessage.split(Regex("(?=/call|/answer|/establish)|(?<=/call|/answer|/establish)"))
+        val strPredicate = { s: String -> s == "/call" || s == "/answer" || s == "/establish" }
+        val p = result.indexOfFirst(strPredicate)
+        if (p != -1) {
+            result = result.filterIndexed { index, string -> index <= p || !strPredicate(string) }
+        }
+        val messageChain = result.map { s -> messageUnit {
+            type = when(s) {
+                "/call" -> MessageOuterClass.MessageUnitType.CALL
+                "/answer" -> MessageOuterClass.MessageUnitType.ANSWER
+                "/establish" -> MessageOuterClass.MessageUnitType.ESTABLISH
+                else -> MessageOuterClass.MessageUnitType.TEXT
+            }
+            message = s
+        }}
+        return MessageChainIndexed(messageChain, p)
     }
 
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun send(messageChain: List<MessageUnit>): Boolean {
+    private fun send(messageChainIndexed: MessageChainIndexed): Boolean {
+        val messageChain = messageChainIndexed.messageChain
         Log.i(TAG, "sending $messageChain")
-        val p: MessageUnit? = messageChain.stream().filter { m ->
-            m.type == MessageUnitType.CALL
-            || m.type == MessageUnitType.ANSWER
-            || m.type == MessageUnitType.ESTABLISH
-        }.findFirst().orElse(null)
-        when(p?.type) {
-            MessageUnitType.CALL -> signalExchangeObserver.onCall(messageChain, p)
-            MessageUnitType.ANSWER -> signalExchangeObserver.onAnswer(messageChain, p)
-            MessageUnitType.ESTABLISH -> signalExchangeObserver.onEstablish(messageChain, p)
-            else -> signalingClient.sendChatMessage(messageChain)
+        val p = messageChainIndexed.index
+        if (p == -1) signalingClient.sendChatMessage(messageChain)
+        else {
+            val asyncFunc = { sdp: String ->
+                messageChain.mapIndexed { index, unit ->
+                    if (index == p) unit.toBuilder().setMessage(sdp).build() else unit
+                }
+            }
+            when(messageChain[p].type) {
+                MessageOuterClass.MessageUnitType.CALL -> signalExchangeObserver.onCall(asyncFunc)
+                MessageOuterClass.MessageUnitType.ANSWER -> signalExchangeObserver.onAnswer(asyncFunc)
+                MessageOuterClass.MessageUnitType.ESTABLISH -> signalExchangeObserver.onEstablish { messageChain }
+                else -> {}
+            }
         }
         // TODO 肯定不能永远true
         return true
@@ -238,14 +247,15 @@ class MainActivity : AppCompatActivity() {
             LazyRow(verticalAlignment = Alignment.CenterVertically) {
                 items(message.messageChain) { unit ->
                     when(unit.type) {
-                        MessageUnitType.TEXT -> unit.message?.let { Text(it, color = MaterialTheme.colorScheme.secondary) }
-                        MessageUnitType.CALL -> Text("/call",
+                        MessageOuterClass.MessageUnitType.TEXT -> unit.message?.let { Text(it, color = MaterialTheme.colorScheme.secondary) }
+                        MessageOuterClass.MessageUnitType.CALL -> Text("/call",
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable(interactionSource, indication = ripple()){})
-                        MessageUnitType.ANSWER -> Text("/answer",
+                        MessageOuterClass.MessageUnitType.ANSWER -> Text("/answer",
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable(interactionSource, indication = ripple()){})
-                        MessageUnitType.ESTABLISH -> Text("/establish", color = MaterialTheme.colorScheme.primary)
+                        MessageOuterClass.MessageUnitType.ESTABLISH -> Text("/establish", color = MaterialTheme.colorScheme.primary)
+                        else -> {}
                     }
                 }
             }
@@ -353,19 +363,24 @@ class MainActivity : AppCompatActivity() {
                 bottomBar = {
                     SendLayer(
                         onClick = {
-                            val messageChain = text2MessageChain(editMessage)
-                            send(messageChain)
+                            val messageChainIndexed = text2MessageChain(editMessage)
+                            send(messageChainIndexed)
                             messageList.add(MessagePreview(
                                 displayName = config.displayName,
                                 time = Date(),
-                                messageChain = messageChain
+                                messageChain = messageChainIndexed.messageChain
                             ))
                             editMessage = "" },
                         value = editMessage,
                         onValueChange = { v -> editMessage = v}
-                    , modifier = Modifier.fillMaxWidth().padding(all = 8.dp))
+                    , modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(all = 8.dp))
                 },
-                modifier = Modifier.fillMaxSize().padding(all = 8.dp).imePadding()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(all = 8.dp)
+                    .imePadding()
             ) { innerPadding ->
                 Column(
                     modifier = Modifier
@@ -394,38 +409,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-    }
-
-    @Preview
-    @Composable
-    fun PreviewMessageList() {
-        MessageList(listOf(
-            MessagePreview(
-                displayName = "夏午",
-                time = Date(),
-                messageChain = listOf(
-                    MessageUnit(MessageUnitType.TEXT, "测试文本"),
-                    MessageUnit(MessageUnitType.CALL),
-                )
-            ),
-            MessagePreview(
-                displayName = "康米",
-                time = Date(),
-                messageChain = listOf(
-                    MessageUnit(MessageUnitType.TEXT, "回答电话"),
-                    MessageUnit(MessageUnitType.ANSWER),
-                )
-            ),
-            MessagePreview(
-                displayName = "夏午",
-                time = Date(),
-                messageChain = listOf(
-                    MessageUnit(MessageUnitType.TEXT, "建立通话"),
-                    MessageUnit(MessageUnitType.ESTABLISH),
-                    MessageUnit(MessageUnitType.TEXT, "可添加额外文本"),
-                )
-            ),
-        ))
     }
 
     @Composable

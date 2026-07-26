@@ -3,6 +3,9 @@ syntax = "proto3";
 package message;
 
 option go_package = "dto/message";
+option java_package = "com.github.xiawusharve.webrtc";
+option optimize_for = LITE_RUNTIME;
+
 
 // enum MessageType {
 //   MESSAGE_TYPE_UNSPECIFIED = 0;

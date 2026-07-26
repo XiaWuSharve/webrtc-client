@@ -5,7 +5,7 @@ import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnection
 import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnectionFactoryBuilder
 import com.github.xiawusharve.webrtc.backend.audio.PeerConnectionObserverImpl
 import com.github.xiawusharve.webrtc.backend.audio.builder
-import com.github.xiawusharve.webrtc.backend.message.dto.MessageUnit
+import message.MessageOuterClass
 import org.webrtc.IceCandidate
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
@@ -99,7 +99,7 @@ class SignalExchangeObserverImpl(
         Log.d(TAG, "onReceiveEstablish")
     }
 
-    override fun onCall(messageChain: List<MessageUnit>, p: MessageUnit) {
+    override fun onCall(cb: (sdp: String) -> List<MessageOuterClass.MessageUnit>) {
         Log.d(TAG, "onCall")
         this.peerConnection = peerConnectionFactoryBuilder.createMyPeerConnection(
             PeerConnectionObserverImpl(this)
@@ -108,28 +108,17 @@ class SignalExchangeObserverImpl(
         peerConnection.createOffer(object : SdpObserver {
             override fun onCreateSuccess(p0: SessionDescription?) {
                 if (p0 != null) {
+                    val s = builder(p0).enableOpusDtx().setMaxAverageBitRate(12000).build()
                     peerConnection.setLocalSdp(object : SdpObserver {
-                        override fun onCreateSuccess(sdp: SessionDescription?) {
-                            TODO("Not yet implemented")
-                        }
-
+                        override fun onCreateSuccess(sdp: SessionDescription?) {}
                         override fun onSetSuccess() {
-                            p.message = p0.description
-                            signalingClient.sendChatMessage(messageChain)
+                            signalingClient.sendChatMessage(cb(s.description))
                         }
-
-                        override fun onCreateFailure(error: String?) {
-                            TODO("Not yet implemented")
-                        }
-
+                        override fun onCreateFailure(error: String?) {}
                         override fun onSetFailure(error: String?) {
                             Log.e(TAG, "onSetFailure: $error")
                         }
-                    },
-                        builder(
-                            p0
-                        ).enableOpusDtx().setMaxAverageBitRate(12000).build()
-                    )
+                    },s)
                 }
             }
 
@@ -147,37 +136,26 @@ class SignalExchangeObserverImpl(
         })
     }
 
-    override fun onAnswer(messageChain: List<MessageUnit>, p: MessageUnit) {
+    override fun onAnswer(cb: (sdp: String) -> List<MessageOuterClass.MessageUnit>) {
         peerConnection.createAnswer(object : SdpObserver {
             override fun onCreateSuccess(p0: SessionDescription?) {
                 if (p0 != null) {
+                    val s = builder(p0).enableOpusDtx().setMaxAverageBitRate(12000).build()
                     peerConnection.setLocalSdp(object : SdpObserver {
-                        override fun onCreateSuccess(sdp: SessionDescription?) {
-                            TODO("Not yet implemented")
-                        }
-
+                        override fun onCreateSuccess(sdp: SessionDescription?) {}
                         override fun onSetSuccess() {
-                            p.message = p0.description
-                            signalingClient.sendChatMessage(messageChain)
+                            signalingClient.sendChatMessage(cb(s.description))
                             candidateReady = true
                             for (c in candidates) {
                                 Log.d(TAG, "cached candidate: ${c.sdp}")
                                 peerConnection.addCandidate(c)
                             }
                         }
-
-                        override fun onCreateFailure(error: String?) {
-                            TODO("Not yet implemented")
-                        }
-
+                        override fun onCreateFailure(error: String?) {}
                         override fun onSetFailure(error: String?) {
                             Log.e(TAG, "onSetFailure: $error")
                         }
-                    },
-                        builder(
-                            p0
-                        ).enableOpusDtx().setMaxAverageBitRate(12000).build()
-                    )
+                    },s)
                 }
             }
 
@@ -195,7 +173,7 @@ class SignalExchangeObserverImpl(
         })
     }
 
-    override fun onEstablish(messageChain: List<MessageUnit>, p: MessageUnit) {
-        signalingClient.sendChatMessage(messageChain)
+    override fun onEstablish(cb: () -> List<MessageOuterClass.MessageUnit>) {
+        signalingClient.sendChatMessage(cb())
     }
 }
