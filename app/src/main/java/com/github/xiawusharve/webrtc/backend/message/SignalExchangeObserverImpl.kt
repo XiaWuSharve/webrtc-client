@@ -33,18 +33,12 @@ class SignalExchangeObserverImpl(
 //        peerConnection.addTrack()
 
         peerConnection.setRemoteSdp(object : SdpObserver {
-            override fun onCreateSuccess(p0: SessionDescription?) {
-                TODO("Not yet implemented")
-            }
-
+            override fun onCreateSuccess(p0: SessionDescription?) {}
             override fun onSetSuccess() {
                 Log.d(TAG, "setRemoteSdp success")
             }
 
-            override fun onCreateFailure(p0: String?) {
-                TODO("Not yet implemented")
-            }
-
+            override fun onCreateFailure(p0: String?) {}
             override fun onSetFailure(p0: String?) {
                 Log.e(TAG, "onSetFailure: $p0")
             }
@@ -54,10 +48,7 @@ class SignalExchangeObserverImpl(
     override fun onReceiveAnswer(sdp: SessionDescription) {
         Log.d(TAG, "received answer")
         peerConnection.setRemoteSdp(object : SdpObserver {
-            override fun onCreateSuccess(p0: SessionDescription?) {
-                TODO("Not yet implemented")
-            }
-
+            override fun onCreateSuccess(p0: SessionDescription?) {}
             override fun onSetSuccess() {
                 Log.d(TAG, "set remote sdp success")
                 Log.d(TAG, "adding cached candidates")
@@ -68,10 +59,7 @@ class SignalExchangeObserverImpl(
                 }
             }
 
-            override fun onCreateFailure(p0: String?) {
-                TODO("Not yet implemented")
-            }
-
+            override fun onCreateFailure(p0: String?) {}
             override fun onSetFailure(p0: String?) {
                 Log.e(TAG, "onSetFailure: $p0")
             }
@@ -122,17 +110,11 @@ class SignalExchangeObserverImpl(
                 }
             }
 
-            override fun onSetSuccess() {
-                TODO("Not yet implemented")
-            }
-
+            override fun onSetSuccess() {}
             override fun onCreateFailure(p0: String?) {
                 Log.e(TAG, "onCreateFailure")
             }
-
-            override fun onSetFailure(p0: String?) {
-                TODO("Not yet implemented")
-            }
+            override fun onSetFailure(p0: String?) {}
         })
     }
 
@@ -159,17 +141,11 @@ class SignalExchangeObserverImpl(
                 }
             }
 
-            override fun onSetSuccess() {
-                TODO("Not yet implemented")
-            }
-
+            override fun onSetSuccess() {}
             override fun onCreateFailure(p0: String?) {
                 Log.e(TAG, "onCreateFailure")
             }
-
-            override fun onSetFailure(p0: String?) {
-                TODO("Not yet implemented")
-            }
+            override fun onSetFailure(p0: String?) {}
         })
     }
 
