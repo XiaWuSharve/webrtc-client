@@ -75,11 +75,11 @@ class SignalExchangeObserverImpl(
         }
     }
 
-    override fun onSendCandidate(candidate: IceCandidate) {
+    override fun sendCandidate(candidate: IceCandidate) {
         signalingClient.sendCandidate(candidate)
     }
 
-    override fun onRemoveCandidate(p0: Array<out IceCandidate?>?) {
+    override fun removeCandidate(p0: Array<out IceCandidate?>?) {
         peerConnection.removeCandidate(p0)
     }
 
@@ -87,7 +87,7 @@ class SignalExchangeObserverImpl(
         Log.d(TAG, "onReceiveEstablish")
     }
 
-    override fun onCall(cb: (sdp: String) -> List<MessageOuterClass.MessageUnit>) {
+    override fun call(cb: (sdp: String) -> List<MessageOuterClass.MessageUnit>) {
         Log.d(TAG, "onCall")
         this.peerConnection = peerConnectionFactoryBuilder.createMyPeerConnection(
             PeerConnectionObserverImpl(this)
@@ -118,7 +118,7 @@ class SignalExchangeObserverImpl(
         })
     }
 
-    override fun onAnswer(cb: (sdp: String) -> List<MessageOuterClass.MessageUnit>) {
+    override fun answer(cb: (sdp: String) -> List<MessageOuterClass.MessageUnit>) {
         peerConnection.createAnswer(object : SdpObserver {
             override fun onCreateSuccess(p0: SessionDescription?) {
                 if (p0 != null) {
@@ -149,7 +149,19 @@ class SignalExchangeObserverImpl(
         })
     }
 
-    override fun onEstablish(cb: () -> List<MessageOuterClass.MessageUnit>) {
+    override fun establish(cb: () -> List<MessageOuterClass.MessageUnit>) {
         signalingClient.sendChatMessage(cb())
+    }
+
+    override fun sendChatMessage(messageChain: List<MessageOuterClass.MessageUnit>) {
+        signalingClient.sendChatMessage(messageChain)
+    }
+
+    override fun register(
+        localId: String,
+        remoteId: String,
+        displayName: String
+    ) {
+        signalingClient.register(localId, remoteId, displayName)
     }
 }

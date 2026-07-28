@@ -75,7 +75,8 @@ dependencies {
     implementation(libs.protobuf.javalite)
     // Source: https://mvnrepository.com/artifact/com.google.protobuf/protobuf-kotlin-lite
     implementation(libs.protobuf.kotlin.lite)
-
+    // Source: https://mvnrepository.com/artifact/androidx.lifecycle/lifecycle-viewmodel-compose
+    runtimeOnly(libs.androidx.lifecycle.viewmodel.compose)
 }
 
 protobuf {

@@ -39,15 +39,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.backblaze.erasure.FecAdapt
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.xiawusharve.webrtc.backend.MyViewModel
 import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnectionFactoryBuilder
 import com.github.xiawusharve.webrtc.backend.message.KCPSignalingClient
 import com.github.xiawusharve.webrtc.backend.message.MessageObserverImpl
@@ -68,8 +66,6 @@ import java.util.Date
 class MainActivity : AppCompatActivity() {
 
     private lateinit var signalExchangeObserver: SignalExchangeObserverImpl
-    private val messageList = mutableStateListOf<MessagePreview>()
-    private lateinit var signalingClient: SignalingClient
     private val simpleDateFormat = SimpleDateFormat.getDateTimeInstance(
         DateFormat.SHORT, DateFormat.SHORT
     )
@@ -144,7 +140,6 @@ class MainActivity : AppCompatActivity() {
             SignalExchangeObserverImpl(myPeerConnectionFactoryBuilder, signalingClient)
         signalingClient.connect(MessageObserverImpl(this, messageList, signalExchangeObserver))
         Log.i(TAG, "初始化通讯组件成功")
-        this.signalingClient = signalingClient
         this.signalExchangeObserver = signalExchangeObserver
     }
 
@@ -188,7 +183,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun register(localId: String, remoteId: String, displayName: String) {
         Log.i(TAG, "注册用户中")
-        signalingClient.register(localId, remoteId, displayName) // TODO: 添加连接成功回调
+        signalExchangeObserver.register(localId, remoteId, displayName) // TODO: 添加连接成功回调
     }
 
     data class MessageChainIndexed(val messageChain: List<MessageOuterClass.MessageUnit>, val index: Int)
@@ -218,7 +213,7 @@ class MainActivity : AppCompatActivity() {
         val messageChain = messageChainIndexed.messageChain
         Log.i(TAG, "sending $messageChain")
         val p = messageChainIndexed.index
-        if (p == -1) signalingClient.sendChatMessage(messageChain)
+        if (p == -1) signalExchangeObserver.sendChatMessage(messageChain)
         else {
             val asyncFunc = { sdp: String ->
                 messageChain.mapIndexed { index, unit ->
@@ -226,9 +221,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             when(messageChain[p].type) {
-                MessageOuterClass.MessageUnitType.CALL -> signalExchangeObserver.onCall(asyncFunc)
-                MessageOuterClass.MessageUnitType.ANSWER -> signalExchangeObserver.onAnswer(asyncFunc)
-                MessageOuterClass.MessageUnitType.ESTABLISH -> signalExchangeObserver.onEstablish { messageChain }
+                MessageOuterClass.MessageUnitType.CALL -> signalExchangeObserver.call(asyncFunc)
+                MessageOuterClass.MessageUnitType.ANSWER -> signalExchangeObserver.answer(asyncFunc)
+                MessageOuterClass.MessageUnitType.ESTABLISH -> signalExchangeObserver.establish { messageChain }
                 else -> {}
             }
         }
@@ -294,12 +289,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    enum class Mode { EDIT, PREVIEW }
-
     // TODO 换接近于label大小的size
     @Composable
     fun ConfigLayer(
-        config: Config,
+        viewModel: MyViewModel
         onLocalIdChange: (String) -> Unit,
         onRemoteIdChange: (String) -> Unit,
         onDisplayNameChange: (String) -> Unit,
@@ -310,9 +303,6 @@ class MainActivity : AppCompatActivity() {
         when(mode) {
             Mode.EDIT -> EditConfig(
                 config,
-                onLocalIdChange,
-                onRemoteIdChange,
-                onDisplayNameChange,
                 onSave
             )
             Mode.PREVIEW -> PreviewConfig(config, onEdit)
@@ -321,32 +311,30 @@ class MainActivity : AppCompatActivity() {
 
     @Composable
     fun EditConfig(
-        config: Config,
-        onLocalIdChange: (String) -> Unit,
-        onRemoteIdChange: (String) -> Unit,
-        onDisplayNameChange: (String) -> Unit,
+        viewModel: MyViewModel,
         onSave: () -> Unit,
     ) {
+        val config by viewModel.config.collectAsStateWithLifecycle()
         // 只在外层添加 padding，内部子组件共用外层修饰符
         Column() {
             Row(horizontalArrangement = Arrangement.SpaceAround) {
                 MyTextField(
                     value = config.localId,
-                    onValueChange = onLocalIdChange,
+                    onValueChange = viewModel::updateLocalId,
                     label = "我的ID - 字母与数字组成",
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 MyTextField(
                     value = config.remoteId,
-                    onValueChange = onRemoteIdChange,
+                    onValueChange = viewModel::updateRemoteId,
                     label = "对方ID",
                     modifier = Modifier.weight(1f)
                 )
             }
             MyTextField(
                 value = config.displayName,
-                onValueChange = onDisplayNameChange,
+                onValueChange = viewModel::updateDisplayName,
                 label = "展示名称",
                 modifier = Modifier.fillMaxWidth()
             )
@@ -378,22 +366,13 @@ class MainActivity : AppCompatActivity() {
     @Preview
     @Composable
     fun PreviewLayer() {
-        var config by remember {
-            mutableStateOf(
-                Config(
-                    localId = "commie",
-                    remoteId = "sharve",
-                    displayName = "康米"
-                )
-            )
-        }
-        var mode by remember { mutableStateOf(Mode.PREVIEW) }
-        var editMessage by remember { mutableStateOf("") }
 
+        val config by MyViewModel().config.collectAsStateWithLifecycle()
         WebrtcTheme() {
             Scaffold(
                 bottomBar = {
                     SendLayer(
+
                         onClick = {
                             val messageChainIndexed = text2MessageChain(editMessage)
                             send(messageChainIndexed)
@@ -446,7 +425,6 @@ class MainActivity : AppCompatActivity() {
     @Composable
     fun SendLayer(onClick: () -> Unit, value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
-            // TODO 基于状态的文本字段
             OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,

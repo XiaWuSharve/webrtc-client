@@ -33,7 +33,7 @@ class PeerConnectionObserverImpl(private val signalExchangeObserver: SignalExcha
 
     override fun onIceCandidate(candidate: IceCandidate?) {
         Log.d(TAG, "sending candidate")
-        if (candidate != null) signalExchangeObserver.onSendCandidate(candidate)
+        if (candidate != null) signalExchangeObserver.sendCandidate(candidate)
     }
     override fun onIceCandidateError(event: IceCandidateErrorEvent?) {
         super.onIceCandidateError(event)
@@ -90,6 +90,6 @@ class PeerConnectionObserverImpl(private val signalExchangeObserver: SignalExcha
 
     override fun onIceCandidatesRemoved(p0: Array<out IceCandidate?>?) {
         Log.v(TAG, "onIceCandidatesRemoved: ${p0.contentToString()}")
-        signalExchangeObserver.onRemoveCandidate(p0)
+        signalExchangeObserver.removeCandidate(p0)
     }
 }

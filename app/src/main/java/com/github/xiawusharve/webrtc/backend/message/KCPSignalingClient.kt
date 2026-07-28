@@ -67,7 +67,7 @@ open class KCPSignalingClient(
     override fun sendCandidate(candidate: IceCandidate) {
         val req: MessageOuterClass.Message = message {
             candidateMessage = candidateMessage {
-                remoteId = this.remoteId
+                this@candidateMessage.remoteId = this@KCPSignalingClient.remoteId
                 sdpMid = candidate.sdpMid
                 sdpMlineIndex = candidate.sdpMLineIndex
                 sdp = candidate.sdp
@@ -96,6 +96,7 @@ open class KCPSignalingClient(
         Log.d(TAG, "received: ${byteBuf.toString(StandardCharsets.UTF_8)}")
         val frame = Frame.parseFrom(byteBuf)
         val message = MessageOuterClass.Message.parseFrom(frame.payload)
+            .toBuilder().setCreatedTime(frame.createdTime).build()
         when(message.dataCase) {
             MessageOuterClass.Message.DataCase.CHAT_MESSAGE -> {
                 messageObserver.onReceiveMessage(message)
