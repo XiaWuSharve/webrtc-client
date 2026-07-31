@@ -2,6 +2,7 @@ package com.github.xiawusharve.webrtc.backend.message
 
 import android.util.Log
 import com.github.xiawusharve.webrtc.MessageOuterClass
+import com.github.xiawusharve.webrtc.backend.MyViewModel
 import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnection
 import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnectionFactoryBuilder
 import com.github.xiawusharve.webrtc.backend.audio.PeerConnectionObserverImpl
@@ -162,6 +163,8 @@ class SignalExchangeObserverImpl(
         remoteId: String,
         displayName: String
     ) {
+        // connect回调里自动注册
+//        signalingClient.connect(MessageObserverImpl(, signalExchangeObserver, application))
         signalingClient.register(localId, remoteId, displayName)
     }
 }

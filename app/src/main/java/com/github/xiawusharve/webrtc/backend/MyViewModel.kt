@@ -147,16 +147,16 @@ class MyViewModel(private val application: Application) : AndroidViewModel(appli
         myPeerConnectionFactoryBuilder.createAudioTrack(AUDIO_TRACK_ID)
         val signalExchangeObserver =
             SignalExchangeObserverImpl(myPeerConnectionFactoryBuilder, signalingClient)
-        // connect回调里自动注册
-        signalingClient.connect(MessageObserverImpl( this::addMessage, signalExchangeObserver, application))
         Log.i(TAG, "初始化通讯组件成功")
         this.signalExchangeObserver = signalExchangeObserver
     }
 
     fun register() {
         Log.i(TAG, "注册用户中")
+
         signalExchangeObserver.register(config.value.localId, config.value.remoteId, config.value.displayName) // TODO: 添加连接成功回调
     }
+
 
     fun send(messageChainIndexed: MessageChain.MessageChainIndexed): Boolean {
         val messageChain = messageChainIndexed.messageChain

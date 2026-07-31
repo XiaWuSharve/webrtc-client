@@ -7,17 +7,19 @@ import androidx.annotation.RequiresPermission
 import com.github.xiawusharve.webrtc.MessageOuterClass
 import com.github.xiawusharve.webrtc.MessagePreview
 import com.github.xiawusharve.webrtc.MyNotification
+import com.github.xiawusharve.webrtc.backend.MyViewModel
 import org.webrtc.IceCandidate
 import org.webrtc.SessionDescription
 import java.util.Date
 
 class MessageObserverImpl(
 //    private val context: Context,
-    private var addMessageFunc: (MessagePreview) -> Unit,
+    private val viewModel: MyViewModel,
     private val signalExchangeObserver: SignalExchangeObserver,
     private val context: Context
 ): MessageObserver {
     override fun onConnected(code: MessageOuterClass.ConnectStatus) {
+        viewModel.register()
 //        when (code) {
 //            MessageOuterClass.ConnectStatus.SUCCESS -> {
 //                Toast.makeText(context, "注册成功", Toast.LENGTH_SHORT).show()
@@ -66,7 +68,7 @@ class MessageObserverImpl(
             }
         }
         val messageChain = MessageChain(messages.chatMessage.messageChainList)
-        addMessageFunc(MessagePreview(
+        viewModel.addMessage(MessagePreview(
             messages.chatMessage.displayName,
             Date(messages.createdTime),
             messageChain

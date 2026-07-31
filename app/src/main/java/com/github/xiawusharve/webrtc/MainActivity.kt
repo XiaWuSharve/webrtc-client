@@ -1,7 +1,6 @@
 package com.github.xiawusharve.webrtc
 
 import android.Manifest
-import android.app.NotificationManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -56,6 +55,7 @@ import java.util.Date
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var myToast: MyToast
     private val simpleDateFormat = SimpleDateFormat.getDateTimeInstance(
         DateFormat.SHORT, DateFormat.SHORT
     )
@@ -68,41 +68,22 @@ class MainActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        this.myToast = MyToast(this)
         enableEdgeToEdge()
         setContent {
             UILayer()
         }
-        requestPermissions()
+        requestPermissions(
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.INTERNET,
+            Manifest.permission.MODIFY_AUDIO_SETTINGS,
+            Manifest.permission.ACCESS_NETWORK_STATE,
+            Manifest.permission.POST_NOTIFICATIONS,
+            Manifest.permission.FOREGROUND_SERVICE,
+            Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK,
+            Manifest.permission.FOREGROUND_SERVICE_MICROPHONE,
+        )
         testNotification()
-    }
-
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun requestPermissions() {
-        Log.i(TAG, "正在获取权限")
-        PermissionX.init(this)
-            .permissions(
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.INTERNET,
-                Manifest.permission.MODIFY_AUDIO_SETTINGS,
-                Manifest.permission.ACCESS_NETWORK_STATE,
-                Manifest.permission.POST_NOTIFICATIONS,
-                Manifest.permission.FOREGROUND_SERVICE,
-                Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK,
-                Manifest.permission.FOREGROUND_SERVICE_MICROPHONE,
-            )
-            .request { allGranted, _, deniedList ->
-                if (allGranted) {
-                    Log.i(TAG, "所有权限已授予")
-                    Toast.makeText(this, "所有权限已授予", Toast.LENGTH_SHORT).show()
-                } else {
-                    Log.e(TAG, "acquire permission failed: $deniedList")
-                    Toast.makeText(
-                        this,
-                        "以下权限被拒绝: $deniedList",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
     }
 
     private fun testNotification() {
