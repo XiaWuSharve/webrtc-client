@@ -1,5 +1,6 @@
 package com.github.xiawusharve.webrtc.backend.audio
 
+import android.app.Application
 import android.content.Context
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
@@ -15,7 +16,7 @@ import org.webrtc.audio.AudioDeviceModule
 import org.webrtc.audio.JavaAudioDeviceModule
 
 class MyPeerConnectionFactoryBuilder(
-    private val context: Context,
+    private val application: Application,
 ) {
     companion object {
         const val TAG = "MyPeerConnectionFactoryBuilder"
@@ -30,7 +31,7 @@ class MyPeerConnectionFactoryBuilder(
 
     // 初始化 PeerConnectionFactory（生产环境关闭 Tracer）
     fun initializeFactory(enableInternalTracer: Boolean) {
-        val initOptions = PeerConnectionFactory.InitializationOptions.builder(context)
+        val initOptions = PeerConnectionFactory.InitializationOptions.builder(application)
             .setEnableInternalTracer(enableInternalTracer) // 生产环境务必设为 false
             .createInitializationOptions()
         PeerConnectionFactory.initialize(initOptions)
@@ -62,7 +63,7 @@ class MyPeerConnectionFactoryBuilder(
 //                    .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
 //                    .build()
 //            )
-        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val audioManager = application.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
         var speakerDevice: AudioDeviceInfo?
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -81,7 +82,7 @@ class MyPeerConnectionFactoryBuilder(
             audioManager.isSpeakerphoneOn = true   // 使用扬声器，false 则使用听筒
         }
 
-        this.audioDeviceModule = JavaAudioDeviceModule.builder(context)
+        this.audioDeviceModule = JavaAudioDeviceModule.builder(application)
             .setUseHardwareAcousticEchoCanceler(true)
             .setUseLowLatency(false)
             .setUseStereoInput(true)

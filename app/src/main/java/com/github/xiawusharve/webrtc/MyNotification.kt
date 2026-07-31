@@ -8,12 +8,16 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.github.xiawusharve.webrtc.backend.audio.RtcClient
 
 class MyNotification(private val context: Context) {
+    companion object {
+        private const val TAG = "MyNotification"
+    }
     private lateinit var notificationManager: NotificationManagerCompat
     private lateinit var channelId: String
     private val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -27,7 +31,9 @@ class MyNotification(private val context: Context) {
             this.channelId = channelId
             return channelId
         } else {
-            return null
+            Log.d(TAG, "Build.VERSION.SDK_INT < Build.VERSION_CODES.O")
+            this.channelId = channelId
+            return channelId
         }
     }
 
@@ -55,7 +61,7 @@ class MyNotification(private val context: Context) {
     }
 
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
-    fun nofity(notification: Notification) {
+    fun notify(notification: Notification) {
         this.notificationManager = NotificationManagerCompat.from(context);
         notificationManager.notify(100, notification);
     }

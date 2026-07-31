@@ -1,36 +1,41 @@
 package com.github.xiawusharve.webrtc.backend.message
 
+import android.Manifest
+import android.app.NotificationManager
 import android.content.Context
-import android.widget.Toast
+import androidx.annotation.RequiresPermission
 import com.github.xiawusharve.webrtc.MessageOuterClass
 import com.github.xiawusharve.webrtc.MessagePreview
+import com.github.xiawusharve.webrtc.MyNotification
 import org.webrtc.IceCandidate
 import org.webrtc.SessionDescription
 import java.util.Date
 
 class MessageObserverImpl(
-    private val context: Context,
-    private var messageListStatus: MutableList<MessagePreview>,
-    private val signalExchangeObserver: SignalExchangeObserver
+//    private val context: Context,
+    private var addMessageFunc: (MessagePreview) -> Unit,
+    private val signalExchangeObserver: SignalExchangeObserver,
+    private val context: Context
 ): MessageObserver {
     override fun onConnected(code: MessageOuterClass.ConnectStatus) {
-        when (code) {
-            MessageOuterClass.ConnectStatus.SUCCESS -> {
-                Toast.makeText(context, "注册成功", Toast.LENGTH_SHORT).show()
-            }
-            MessageOuterClass.ConnectStatus.ALREADY_EXIST -> {
-                Toast.makeText(context, "id已存在", Toast.LENGTH_LONG).show()
-            }
-            else -> {
-                Toast.makeText(context, "注册时发生错误：$code", Toast.LENGTH_LONG).show()
-            }
-        }
+//        when (code) {
+//            MessageOuterClass.ConnectStatus.SUCCESS -> {
+//                Toast.makeText(context, "注册成功", Toast.LENGTH_SHORT).show()
+//            }
+//            MessageOuterClass.ConnectStatus.ALREADY_EXIST -> {
+//                Toast.makeText(context, "id已存在", Toast.LENGTH_LONG).show()
+//            }
+//            else -> {
+//                Toast.makeText(context, "注册时发生错误：$code", Toast.LENGTH_LONG).show()
+//            }
+//        }
     }
 
     override fun onConnect() {
         TODO("Not yet implemented")
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     override fun onReceiveMessage(messages: MessageOuterClass.Message) {
         for (m in messages.chatMessage.messageChainList) {
             when(m.type) {
@@ -60,11 +65,17 @@ class MessageObserverImpl(
                 else -> {}
             }
         }
-        messageListStatus.add(MessagePreview(
+        val messageChain = MessageChain(messages.chatMessage.messageChainList)
+        addMessageFunc(MessagePreview(
             messages.chatMessage.displayName,
             Date(messages.createdTime),
-            messages.chatMessage.messageChainList
+            messageChain
         ))
+        val myNotification = MyNotification(context)
+        myNotification.createNotificationChannel("voice_call_urgent", "电话通道", NotificationManager.IMPORTANCE_HIGH)
+        val notification =
+            myNotification.createNotification(messages.chatMessage.displayName, messageChain.toString())
+        myNotification.notify(notification)
     }
 
     override fun onSendMessage() {
