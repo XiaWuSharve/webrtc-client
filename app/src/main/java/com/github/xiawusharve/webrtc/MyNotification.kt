@@ -12,7 +12,7 @@ import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.github.xiawusharve.webrtc.backend.audio.RtcClient
+import com.github.xiawusharve.webrtc.backend.webrtc.RtcClient
 
 class MyNotification(private val context: Context) {
     companion object {

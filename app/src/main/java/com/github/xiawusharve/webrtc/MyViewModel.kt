@@ -1,19 +1,16 @@
-package com.github.xiawusharve.webrtc.backend
+package com.github.xiawusharve.webrtc
 
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.xiawusharve.webrtc.Config
-import com.github.xiawusharve.webrtc.MessageOuterClass
-import com.github.xiawusharve.webrtc.MessagePreview
-import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnectionFactoryBuilder
+import com.github.xiawusharve.webrtc.backend.PreferenceManager
 import com.github.xiawusharve.webrtc.backend.message.KCPSignalingClient
 import com.github.xiawusharve.webrtc.backend.message.MessageChain
-import com.github.xiawusharve.webrtc.backend.message.MessageObserverImpl
-import com.github.xiawusharve.webrtc.backend.message.SignalExchangeObserverImpl
 import com.github.xiawusharve.webrtc.backend.message.SignalingClient
 import com.github.xiawusharve.webrtc.backend.message.WebSocketSignalingClient
+import com.github.xiawusharve.webrtc.backend.observer.SignalExchangeObserverImpl
+import com.github.xiawusharve.webrtc.backend.webrtc.MyPeerConnectionFactoryBuilder
 import kcp.ChannelConfig
 import kcp.KcpConfig
 import kotlinx.coroutines.flow.MutableStateFlow

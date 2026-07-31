@@ -37,7 +37,7 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback|microphone" />
         <receiver
-            android:name=".backend.audio.RtcClient"
+            android:name=".backend.webrtc.RtcClient"
             android:exported="false">
             <intent-filter>
                 <action android:name="answer" />

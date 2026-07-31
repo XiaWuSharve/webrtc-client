@@ -1,7 +1,6 @@
-package com.github.xiawusharve.webrtc.backend.audio
+package com.github.xiawusharve.webrtc.backend.observer
 
 import android.util.Log
-import com.github.xiawusharve.webrtc.backend.message.SignalExchangeObserver
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
 import org.webrtc.IceCandidateErrorEvent

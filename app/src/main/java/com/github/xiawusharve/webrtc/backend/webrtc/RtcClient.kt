@@ -1,10 +1,10 @@
-package com.github.xiawusharve.webrtc.backend.audio
+package com.github.xiawusharve.webrtc.backend.webrtc
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import com.github.xiawusharve.webrtc.backend.message.SignalExchangeObserverImpl
+import com.github.xiawusharve.webrtc.backend.observer.SignalExchangeObserverImpl
 import com.github.xiawusharve.webrtc.backend.message.WebSocketSignalingClient
 
 class RtcClient(

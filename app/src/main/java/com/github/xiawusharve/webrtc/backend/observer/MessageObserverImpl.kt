@@ -1,4 +1,4 @@
-package com.github.xiawusharve.webrtc.backend.message
+package com.github.xiawusharve.webrtc.backend.observer
 
 import android.Manifest
 import android.app.NotificationManager
@@ -7,7 +7,8 @@ import androidx.annotation.RequiresPermission
 import com.github.xiawusharve.webrtc.MessageOuterClass
 import com.github.xiawusharve.webrtc.MessagePreview
 import com.github.xiawusharve.webrtc.MyNotification
-import com.github.xiawusharve.webrtc.backend.MyViewModel
+import com.github.xiawusharve.webrtc.MyViewModel
+import com.github.xiawusharve.webrtc.backend.message.MessageChain
 import org.webrtc.IceCandidate
 import org.webrtc.SessionDescription
 import java.util.Date

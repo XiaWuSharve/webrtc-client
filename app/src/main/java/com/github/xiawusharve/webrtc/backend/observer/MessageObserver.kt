@@ -1,4 +1,4 @@
-package com.github.xiawusharve.webrtc.backend.message
+package com.github.xiawusharve.webrtc.backend.observer
 
 import com.github.xiawusharve.webrtc.MessageOuterClass
 import org.webrtc.IceCandidate

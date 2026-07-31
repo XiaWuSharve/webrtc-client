@@ -3,8 +3,6 @@ package com.github.xiawusharve.webrtc
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -44,11 +42,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.xiawusharve.webrtc.backend.MyViewModel
-import com.github.xiawusharve.webrtc.backend.MyViewModel.Mode
+import com.github.xiawusharve.webrtc.MyViewModel.Mode
 import com.github.xiawusharve.webrtc.backend.message.MessageChain
 import com.github.xiawusharve.webrtc.ui.theme.WebrtcTheme
-import com.permissionx.guolindev.PermissionX
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date

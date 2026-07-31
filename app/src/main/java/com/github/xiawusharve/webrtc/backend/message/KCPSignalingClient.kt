@@ -2,6 +2,7 @@ package com.github.xiawusharve.webrtc.backend.message
 
 import android.util.Log
 import com.github.xiawusharve.webrtc.MessageOuterClass
+import com.github.xiawusharve.webrtc.backend.observer.MessageObserver
 import com.github.xiawusharve.webrtc.candidateMessage
 import com.github.xiawusharve.webrtc.connectMessageRequest
 import com.github.xiawusharve.webrtc.message

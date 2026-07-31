@@ -1,12 +1,11 @@
-package com.github.xiawusharve.webrtc.backend.message
+package com.github.xiawusharve.webrtc.backend.observer
 
 import android.util.Log
 import com.github.xiawusharve.webrtc.MessageOuterClass
-import com.github.xiawusharve.webrtc.backend.MyViewModel
-import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnection
-import com.github.xiawusharve.webrtc.backend.audio.MyPeerConnectionFactoryBuilder
-import com.github.xiawusharve.webrtc.backend.audio.PeerConnectionObserverImpl
-import com.github.xiawusharve.webrtc.backend.audio.builder
+import com.github.xiawusharve.webrtc.backend.message.SignalingClient
+import com.github.xiawusharve.webrtc.backend.webrtc.MyPeerConnection
+import com.github.xiawusharve.webrtc.backend.webrtc.MyPeerConnectionFactoryBuilder
+import com.github.xiawusharve.webrtc.backend.webrtc.builder
 import org.webrtc.IceCandidate
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
